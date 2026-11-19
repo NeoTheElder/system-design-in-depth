@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Multi-step processes: JEE-pattern practice paper</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=STIX+Two+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --desk:#e8ebf0; --paper:#ffffff; --ink:#15171c; --ink2:#4b5261; --rule:#cdd2da; --rule2:#e4e7ec;
+  --omr:#c2255c; --omr-soft:#fce4ee;
+  --ok:#17794a; --ok-soft:#e1f5e9; --bad:#b3261e; --bad-soft:#fde8e6; --part:#8a5a00; --mute-soft:#f0f2f5;
+  --code-bg:#f3f5f8;
+  --d-ink:#1e1e1e; --d-mute:#7b838d; --d-acc:#c2255c;
+  --f-blue:#d0ebff; --f-green:#d3f9d8; --f-yellow:#fff3bf; --f-pink:#ffdeeb; --f-violet:#e5dbff; --f-gray:#f1f3f5;
+  --serif:"STIX Two Text","Times New Roman",Times,serif;
+  --hand:"Kalam","Comic Sans MS","Segoe Print","Bradley Hand",cursive;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --desk:#0d0e11; --paper:#181a1f; --ink:#e9ebef; --ink2:#a7aebb; --rule:#363a44; --rule2:#272b32;
+    --omr:#f783ac; --omr-soft:#3b1a29;
+    --ok:#5fd596; --ok-soft:#12301f; --bad:#ff9a8f; --bad-soft:#3b1613; --part:#f2c14e; --mute-soft:#21242a;
+    --code-bg:#111317;
+    --d-ink:#e3e5e8; --d-mute:#8d95a1; --d-acc:#f783ac;
+    --f-blue:#1b3a57; --f-green:#1c4229; --f-yellow:#4d3f10; --f-pink:#52213a; --f-violet:#372c61; --f-gray:#2a2e35;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --desk:#0d0e11; --paper:#181a1f; --ink:#e9ebef; --ink2:#a7aebb; --rule:#363a44; --rule2:#272b32;
+  --omr:#f783ac; --omr-soft:#3b1a29;
+  --ok:#5fd596; --ok-soft:#12301f; --bad:#ff9a8f; --bad-soft:#3b1613; --part:#f2c14e; --mute-soft:#21242a;
+  --code-bg:#111317;
+  --d-ink:#e3e5e8; --d-mute:#8d95a1; --d-acc:#f783ac;
+  --f-blue:#1b3a57; --f-green:#1c4229; --f-yellow:#4d3f10; --f-pink:#52213a; --f-violet:#372c61; --f-gray:#2a2e35;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;height:100%}
+body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.62}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--paper);border-bottom:1px solid var(--rule)}
+.bar-in{max-width:1120px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.bar-title{font-weight:700;font-size:17px;margin-right:auto}
+.bar-title span{font-weight:400;color:var(--ink2)}
+.stat{font-size:15px;color:var(--ink2);white-space:nowrap}
+.stat b{color:var(--ink);font-size:17px;font-variant-numeric:tabular-nums}
+@media (max-width:700px){.bar-title{display:none}.stats{margin-right:auto}}
+@media (max-width:520px){.stat-done{display:none}.bar-in{padding:8px 12px;gap:8px 10px}}
+.stats{display:flex;gap:16px}
+
+.btn{font:inherit;font-size:16px;line-height:1.2;padding:9px 16px;border-radius:4px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.sm{font-size:14.5px;padding:6px 11px}
+.btn:focus-visible,.omr-row:focus-visible,.num input:focus-visible,.opt input:focus-visible + .bub{outline:2px solid var(--omr);outline-offset:2px}
+
+/* layout */
+.layout{max-width:1120px;margin:0 auto;padding:22px 12px 72px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.paper{background:var(--paper);border:1px solid var(--rule);padding:22px 16px 40px;min-width:0}
+@media (min-width:700px){.paper{padding:44px 52px 56px}}
+@media (max-width:600px){
+  body{font-size:17px}
+  .layout{padding:10px 0 60px}
+  .paper{border-left:0;border-right:0;padding:18px 14px 36px}
+  .cover{padding:18px 12px 14px}
+  .q{grid-template-columns:30px minmax(0,1fr)}
+  .mark{left:-9px;width:40px;height:30px}
+  .opt{padding:6px 4px}
+  .passage{padding:13px 13px 4px}
+  .sol{padding:12px 13px 4px}
+}
+@media (min-width:1080px){
+  .layout{grid-template-columns:minmax(0,808px) 252px;justify-content:center;align-items:start}
+  #omrToggle{display:none}
+}
+
+/* answer sheet */
+.omr{background:var(--paper);border:1.5px solid var(--omr);padding:12px 12px 14px;font-size:14px;line-height:1.3}
+@media (max-width:1079.98px){
+  .omr{display:none;position:fixed;z-index:8;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + var(--barh,54px) + 6px);max-height:64vh;overflow:auto;box-shadow:0 14px 34px rgba(0,0,0,.28)}
+  .omr.open{display:block}
+  .omr-grid{columns:2;column-gap:18px}
+}
+@media (min-width:1080px){.omr{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh,54px) + 16px);max-height:calc(100vh - var(--barh,54px) - 36px);overflow:auto}}
+.omr h2{font-size:16px;margin:0 0 2px;color:var(--omr);font-weight:700}
+.omr .hint{margin:0 0 6px;color:var(--ink2);font-size:13px}
+.omr-sec{margin:8px 0 3px;padding-top:6px;font-size:12.5px;color:var(--omr);border-top:1px solid var(--omr-soft);break-after:avoid}
+.omr-row{display:grid;grid-template-columns:24px 1fr 20px;align-items:center;gap:8px;width:100%;background:none;border:0;padding:3px 2px;font:inherit;color:var(--ink);cursor:pointer;text-align:left;border-radius:3px;break-inside:avoid}
+.omr-row:hover{background:var(--omr-soft)}
+.omr-row{min-height:23px}
+.omr-row > span{display:flex;align-items:center}
+.omr-row .n{justify-content:flex-end;font-variant-numeric:tabular-nums}
+.bubs{display:flex;gap:7px}
+.bubs i{width:15px;height:15px;border-radius:50%;border:1.3px solid var(--omr);display:block}
+.bubs i.on{background:var(--ink);border-color:var(--ink)}
+.numbox{border:1.3px solid var(--omr);min-width:81px;height:17px;padding:0 5px;font-size:12px;line-height:14.5px;display:inline-block;border-radius:2px;font-variant-numeric:tabular-nums}
+.omr-row .st{font-family:var(--hand);font-weight:700;font-size:15px;justify-content:center}
+.omr-row[data-res=right] .st{color:var(--ok)}
+.omr-row[data-res=partial] .st{color:var(--part)}
+.omr-row[data-res=wrong] .st{color:var(--bad)}
+.omr-row[data-res=shown] .st{color:var(--ink2)}
+
+/* cover */
+.cover{border:2px solid var(--ink);padding:22px 16px 16px;text-align:center}
+.cover h1{font-size:clamp(30px,5.4vw,44px);line-height:1.1;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+.cover .sub{margin:0 auto 6px;max-width:33em;color:var(--ink2);font-size:17px;line-height:1.45}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin:10px 0 14px}
+.facts div{padding:8px 6px 7px}
+.facts div + div{border-left:1px solid var(--ink)}
+.facts b{display:block;font-size:23px;line-height:1.2;font-variant-numeric:tabular-nums}
+.facts span{font-size:14px;color:var(--ink2)}
+.notes{text-align:left;margin:0;padding-left:20px;font-size:16px;line-height:1.5}
+.notes li{margin:5px 0}
+
+/* sections */
+.sec{margin-top:46px}
+.sec-h{border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);padding:7px 0;text-align:center}
+.sec-h h2{font-size:21px;margin:0;font-weight:700}
+.sec-h h2 span{font-weight:400}
+.sec-i{margin:10px 0 0;padding-left:20px;font-size:15.5px;line-height:1.5;color:var(--ink2)}
+.sec-i li{margin:2px 0}
+
+/* questions */
+.q{display:grid;grid-template-columns:42px minmax(0,1fr);column-gap:6px;padding:26px 0 24px;border-bottom:1px solid var(--rule2);scroll-margin-top:calc(var(--barh,54px) + 14px)}
+.q-n{font-weight:700;position:relative}
+.mark{position:absolute;left:-9px;top:32px;width:48px;height:36px;transform:rotate(-8deg);pointer-events:none}
+.mark svg{display:block;width:100%;height:100%;overflow:visible}
+.mark text{font-family:var(--hand);font-weight:700;font-size:21px;fill:currentColor}
+.q[data-res=right] .mark{color:var(--ok)}
+.q[data-res=partial] .mark{color:var(--part)}
+.q[data-res=wrong] .mark{color:var(--bad)}
+.q[data-res=shown] .mark{color:var(--ink2)}
+.q-tag{font-size:14.5px;color:var(--ink2);font-style:italic;margin:0 0 2px}
+.stem p{margin:0 0 10px}
+.stem p:last-child{margin-bottom:4px}
+
+fieldset.opts{display:grid;gap:2px;margin:8px 0 0;padding:0;border:0;min-width:0}
+.opt{display:grid;grid-template-columns:30px minmax(0,1fr);column-gap:10px;align-items:start;padding:7px 8px;border-radius:6px;cursor:pointer;position:relative}
+.q:not(.locked) .opt:hover{background:var(--mute-soft)}
+.opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.bub{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--omr);color:var(--omr);display:grid;place-items:center;font-size:14px;font-weight:600;line-height:1;margin-top:1px}
+.opt input:checked + .bub{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.q.locked .opt{cursor:default}
+.opt.is-ans{background:var(--ok-soft)}
+.opt.is-ans .bub{border-color:var(--ok);color:var(--ok)}
+.opt.is-ans input:checked + .bub{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+.opt.is-bad{background:var(--bad-soft)}
+.opt.is-bad input:checked + .bub{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.flag{grid-column:2;font-size:13.5px;font-style:italic;line-height:1.3}
+.flag:empty{display:none}
+.is-ans .flag{color:var(--ok)}
+.is-bad .flag{color:var(--bad)}
+
+.num{margin:12px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.num label{font-size:16px;color:var(--ink2)}
+.num input{font:inherit;font-size:19px;width:150px;padding:5px 10px;border:1.5px solid var(--omr);border-radius:4px;background:var(--paper);color:var(--ink)}
+.num input:disabled{opacity:.8}
+
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.sol{margin:16px 0 0;padding:13px 16px 5px;border-left:3px solid var(--ink2);background:var(--mute-soft);font-size:16.5px;line-height:1.55}
+.sol[data-res=right]{border-color:var(--ok)}
+.sol[data-res=partial]{border-color:var(--part)}
+.sol[data-res=wrong]{border-color:var(--bad)}
+.sol .verdict{margin:0 0 8px;font-size:17px}
+.sol[data-res=right] .verdict b{color:var(--ok)}
+.sol[data-res=partial] .verdict b{color:var(--part)}
+.sol[data-res=wrong] .verdict b{color:var(--bad)}
+.sol p{margin:0 0 9px}
+.sol ul{margin:0 0 9px;padding-left:20px}
+.sol li{margin:3px 0}
+
+/* figures */
+.fig{margin:14px 0 12px;overflow-x:auto;border:1px dashed var(--rule);border-radius:10px}
+.fig svg{display:block;width:100%;min-width:560px;height:auto}
+.fig text{font-family:var(--hand)}
+.cover .fig{border:0;margin:10px 0 0}
+.cover .fig svg{min-width:0}
+
+pre{margin:10px 0;padding:12px 14px;background:var(--code-bg);border:1px solid var(--rule2);border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.55;tab-size:2}
+code{font-family:var(--mono);font-size:.84em;background:var(--code-bg);padding:1px 4px;border-radius:3px}
+pre code{background:none;padding:0;font-size:inherit}
+
+.lists{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);margin:10px 0 6px;font-size:16px;line-height:1.45}
+.lists > div{padding:9px 12px 4px}
+.lists > div + div{border-left:1px solid var(--rule)}
+.lists h4{margin:0 0 6px;font-size:15px}
+.lists p{margin:0 0 7px;padding-left:2.1em;text-indent:-2.1em}
+@media (max-width:600px){.lists{grid-template-columns:1fr}.lists > div + div{border-left:0;border-top:1px solid var(--rule)}}
+
+.passage{margin:30px 0 0;padding:15px 18px 6px;border:1px solid var(--ink)}
+.passage h3{margin:0 0 6px;font-size:18.5px}
+.passage p{margin:0 0 10px}
+
+.result{margin-top:46px;border-top:2px solid var(--ink);padding-top:14px}
+.result h2{font-size:21px;margin:0 0 4px}
+.result p{margin:0 0 10px;color:var(--ink2);font-size:16px}
+.tw{overflow-x:auto}
+.result table{border-collapse:collapse;width:100%;font-size:16px;min-width:420px}
+.result th,.result td{border:1px solid var(--rule);padding:6px 10px;text-align:left}
+.result .r{text-align:right;font-variant-numeric:tabular-nums}
+.result tfoot td{font-weight:700}
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><filter id="wob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"/></filter></defs></svg>
+
+<header class="bar" id="bar">
+  <div class="bar-in">
+    <div class="bar-title">Multi-step processes <span>practice paper</span></div>
+    <div class="stats" aria-live="polite">
+      <span class="stat"><b id="score">0</b> / <span id="max">0</span> marks</span>
+      <span class="stat stat-done"><b id="done">0</b> / <span id="total">0</span> checked</span>
+    </div>
+    <button class="btn ghost sm" id="omrToggle" aria-expanded="false" aria-controls="omr">Answer sheet</button>
+    <button class="btn ghost sm" id="reset">Start over</button>
+  </div>
+</header>
+
+<div class="layout">
+  <main class="paper" id="paper"></main>
+  <aside class="omr" id="omr" aria-label="Answer sheet"></aside>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ───────────────────────── paper content ───────────────────────── */
+
+var AR = [
+  'Statement 1 is true, Statement 2 is true, and Statement 2 is a correct explanation of Statement 1.',
+  'Statement 1 is true, Statement 2 is true, but Statement 2 is not a correct explanation of Statement 1.',
+  'Statement 1 is true and Statement 2 is false.',
+  'Statement 1 is false and Statement 2 is true.'
+];
+
+var DATA = [
+{ id:'s1', name:'Section 1', type:'single',
+  rules:[
+    'Eight questions. Each has four options, and exactly one is correct.',
+    'Marking: +3 for the correct option, 0 if you do not attempt, −1 for a wrong option.'
+  ],
+  items:[
+  { id:'q1', type:'single', fig:'q1',
+    stem:`<p>The figure shows a team’s first patch to a single-server order flow. Every server writes the order’s current step to a shared database after each step, and gateway webhooks are published through pub/sub so that any free server can load the order and carry on.</p><p>Server A crashes just after writing <code>PAYMENT_CHARGED</code> for order #812, before it calls the inventory service. Which problem does this design still leave unsolved?</p>`,
+    opts:[
+      `The webhook for order #812 can be handled only by Server A, because only A knows the order.`,
+      `After a restart, no server can tell which step order #812 had reached.`,
+      `Nothing notices that order #812 has stalled: the row records progress, but no component is responsible for claiming the order and safely driving its next step.`,
+      `The API tier can no longer be scaled beyond one host.`
+    ], ans:[2],
+    why:`<p>Writing each step to a shared database means progress survives a restart, which settles (B). Shared state plus pub/sub lets any server continue any order, which settles the stray webhook in (A) and the scaling worry in (D).</p><p>What remains is that the database remembers progress but does not act on it. Order #812 sits at <code>PAYMENT_CHARGED</code> until something notices the stall, decides which step is safe to retry, and claims the work without a second server grabbing it too. That is a poller, a locking scheme and retry logic, all written by hand, and compensation is still missing. This bookkeeping is what a workflow engine takes over.</p>` },
+
+  { id:'q2', type:'single',
+    stem:`<p>A saga gives up the all-or-nothing guarantee of a distributed transaction for a weaker one. Which statement describes the saga’s guarantee most accurately?</p>`,
+    opts:[
+      `Each step commits on its own and each committed step has a compensating action, so whatever has happened can be undone; intermediate states are visible while the saga runs.`,
+      `Either every step takes effect or none does, and this is achieved without holding locks across services.`,
+      `Intermediate states are hidden from customers, because the order is held in a pending status.`,
+      `Compensating actions always succeed, since they only reverse work that has already succeeded.`
+    ], ans:[0],
+    why:`<p>A saga is a sequence of local steps, each paired with an action that undoes it. It does not promise that the steps happen together. It promises that what did happen can be unwound.</p><ul><li>(B) describes atomicity, which is exactly what a saga gives up. Two-phase commit would need every participant to stay locked while the slowest decides, and an external payment gateway does not speak your transaction protocol.</li><li>(C) gets the pending status backwards. It labels the window of inconsistency; it does not hide it. The customer’s card really has been charged for an order that has not shipped.</li><li>(D) is false. A refund can fail just as a charge can, so compensations need their own retries and idempotency, with a human escape hatch for the ones that still fail.</li></ul>` },
+
+  { id:'q3', type:'single', fig:'q3',
+    stem:`<p>A workflow function reaches <code>await processPayment(order)</code> for the first time. Using the edge labels in the figure, which sequence of hops takes place before the workflow moves on to its next line?</p>`,
+    opts:[ `u, then p, then t`, `p, then v, then t`, `q, then r, then s`, `p, q, r, s, then t` ], ans:[3],
+    why:`<p>The workflow worker never calls the payment service itself, which rules out edge u. The server never runs your code, which rules out edge v: it is the bookkeeper that hands out tasks, tracks timeouts and records progress.</p><p>The real path is: the workflow worker tells the server to schedule the Activity (p); the server queues the task for an activity worker (q); the activity worker makes the call (r) and reports the result (s); the server records it in history and hands the workflow back to a workflow worker (t), which carries on from where the recorded history ends.</p><p>(C) has the right middle but leaves out the scheduling decision and the resume, so on its own it explains neither why the Activity ran nor how the workflow continues.</p>` },
+
+  { id:'q4', type:'single',
+    stem:`<p>The function below is workflow code for a replay-based engine, written with the TypeScript SDK. <code>loadOrder</code>, <code>requestApproval</code> and <code>issueRefund</code> are proxied Activities. Assume the runtime lets every line execute. Which line or lines break the engine’s recovery model?</p>`,
+    code:
+`async function refundWorkflow(orderId: string) {
+  const order = await loadOrder(orderId);                  // L1
+  const rate  = await fetch(FX_URL).then(r => r.json());   // L2
+  const startedAt = Date.now();                            // L3
+  if (order.total * rate.usd > 500) {                      // L4
+    await requestApproval(orderId);                        // L5
+  }
+  await issueRefund(orderId, startedAt);                   // L6
+}`,
+    opts:[ `L1 only`, `L2 only`, `L3 only`, `L2 and L3` ], ans:[1],
+    why:`<p>Recovery works by replay: the function is run again from the top and every Activity that already ran is answered from history. That only works if the code makes the same decisions each time.</p><ul><li>L2 is a network read made directly in workflow code. Its result is not in history, so a replay fetches again and may get a different rate. L4 can then branch differently from the first run, for example skipping an approval that history says was scheduled. The read belongs in an Activity.</li><li>L3 looks suspicious but is safe here. The TypeScript SDK sandboxes the runtime so that timestamps and random numbers replay consistently.</li><li>L1 is an Activity call, so its result is recorded and replayed.</li></ul>` },
+
+  { id:'q5', type:'single', fig:'q5',
+    stem:`<p>One deploy changes a loan workflow at point P to:</p><pre><code>if (patched('kyc-v2')) { await kycV2(); } else { await kycLegacy(); }</code></pre><p>At the time of the deploy, W1 has already passed P under the old code and is waiting on a later signal. W2 started under the old code but has not yet reached P. W3 starts after the deploy. Which branch does each execution follow at P? For W1, consider its next replay.</p>`,
+    opts:[
+      `W1 legacy, W2 legacy, W3 new`,
+      `W1 new, W2 new, W3 new`,
+      `W1 fails its replay, W2 legacy, W3 new`,
+      `W1 legacy, W2 new, W3 new`
+    ], ans:[3],
+    why:`<p><code>patched()</code> returns true for new executions and for in-flight executions that reach the point for the first time. It returns false for executions whose recorded history already extends past the point from running the old code.</p><ul><li>W1 already has <code>kycLegacy</code> in its history, so its replay must take the legacy branch to line up with that history.</li><li>W2 has recorded nothing at P yet, so the new branch is safe for it, and it takes it.</li><li>W3 is a new execution and takes the new branch.</li></ul><p>(A) is the tempting answer: “old workflows stay old”. That is what versioning by separate deployment gives you, not what a patch does. The patch decides by what is in each execution’s history at that point, not by when the execution started.</p>` },
+
+  { id:'q6', type:'single',
+    stem:`<p>Ten thousand loan approvals are in flight on AWS Step Functions (Standard). You update the state machine definition to insert a compliance check. Which statement is correct?</p>`,
+    opts:[
+      `In-flight executions stay on the definition they started with. If they need the check, stop and restart them, or have the branch modelled in the definition ahead of time.`,
+      `In-flight executions adopt the new state at their next transition.`,
+      `In-flight executions fail with a non-determinism error at their next replay unless the change is wrapped in a patch.`,
+      `The service replays each execution’s history against the new definition, so the old executions need a version Choice state.`
+    ], ans:[0],
+    why:`<p>A running Step Functions execution is pinned to the definition it started with, so an update affects only new executions. That means less migration work, and less control: to get the new step into in-flight executions you stop and restart them, or you model the branch before you need it.</p><p>(C) and (D) carry over the recovery model of replay-based engines. Step Functions does not replay your logic. It tracks the state machine’s position on the server and continues from there, so there is no non-determinism error and no patch call.</p>` },
+
+  { id:'q7', type:'single',
+    stem:`<p>Which requirement, taken on its own, makes the weakest case for introducing a workflow engine?</p>`,
+    opts:[
+      `If label creation fails, the inventory hold must be released and the charge refunded.`,
+      `An application may sit for up to 30 days waiting for the customer’s signature.`,
+      `On upload, produce one thumbnail per image. The client does not wait for it. There are about 40 million uploads a day.`,
+      `Auditors need, for each order, a record of every decision and when it was taken.`
+    ], ans:[2],
+    why:`<p>(C) is a single-step asynchronous job at high volume and low value per operation. A message queue and a worker handle it. A workflow engine would add round trips through the engine and several history writes for every thumbnail, with nothing to coordinate or undo.</p><p>The other three are the signals that do justify an engine: partial failure with compensation (A), a long-running wait (B), and an audit requirement (D).</p>` },
+
+  { id:'q8', type:'single',
+    stem:`<p>Two million document-signing workflows are each parked on a wait of up to 30 days for a “signed” signal. The workers are 20 pods with 200 threads each. What is true of the waiting workflows?</p>`,
+    opts:[
+      `Only 4,000 can wait at a time; the rest queue until a thread is free.`,
+      `A waiting workflow holds no thread and no worker memory. The engine keeps its state and a durable timer, and rehydrates it when the signal or the timer arrives.`,
+      `Each waiting workflow polls the history database every few seconds for its signal.`,
+      `A rolling restart of the pods resets every 30-day timer to zero.`
+    ], ans:[1],
+    why:`<p>While a workflow waits, the engine persists its state and frees the worker for other work. The wait is a durable timer plus persisted state, not a blocked thread, so the number waiting is not tied to 20 × 200 threads (A), and nothing is polling (C).</p><p>Because the timer lives in the engine and not in a pod’s memory, restarting the pods does not reset it (D). The signal arrives through the engine’s API, addressed to the workflow’s ID, and the engine wakes the right execution.</p>` }
+  ]},
+
+{ id:'s2', name:'Section 2', type:'single',
+  rules:[
+    'Four questions. Each gives two statements. Choose the option that describes them.',
+    'Marking: +3 for the correct option, 0 if you do not attempt, −1 for a wrong option.'
+  ],
+  items:[
+  { id:'q9', type:'single',
+    stem:`<p><b>Statement 1.</b> In a replay-based engine, workflow code must make the same decisions whenever it is given the same inputs and history.</p><p><b>Statement 2.</b> After a crash, another worker runs the workflow function again from the top, and each Activity that already ran is answered from recorded history instead of being executed again.</p>`,
+    opts:AR, ans:[0],
+    why:`<p>Both are true, and Statement 2 is the reason for Statement 1. Replay is free of side effects and lands exactly where execution stopped only if the re-run code asks for the same Activities in the same order as the history holds. Anything that could differ between runs, such as a network call or a database read, has to go in an Activity so that its result is recorded.</p>` },
+
+  { id:'q10', type:'single',
+    stem:`<p><b>Statement 1.</b> Activities should be safe to attempt more than once.</p><p><b>Statement 2.</b> The engine runs an Activity again after it has reported success, in case the result was recorded incorrectly.</p>`,
+    opts:AR, ans:[2],
+    why:`<p>Statement 1 is true. Statement 2 is false: an Activity that has reported success is not retried.</p><p>The retry that makes idempotency necessary comes from a gray zone. A crash, or a success report that never arrives, can leave the engine unsure whether the Activity finished, and in that case it retries. Idempotency is what makes that retry harmless.</p>` },
+
+  { id:'q11', type:'single',
+    stem:`<p><b>Statement 1.</b> In choreography over a partitioned log, adding workers to a consumer group always raises throughput.</p><p><b>Statement 2.</b> Within one consumer group, a partition is read by one worker at a time.</p>`,
+    opts:AR, ans:[3],
+    why:`<p>Statement 2 is true, and it is the reason Statement 1 is false. Adding workers helps only up to the topic’s partition count. Beyond that, the extra workers have no partition to read and sit idle.</p>` },
+
+  { id:'q12', type:'single',
+    stem:`<p><b>Statement 1.</b> While a saga runs, a customer can have been charged for an order that has not shipped.</p><p><b>Statement 2.</b> A compensating action can fail, so it needs its own retries and idempotency.</p>`,
+    opts:AR, ans:[1],
+    why:`<p>Both are true, but one does not explain the other. The window in Statement 1 exists because each step commits on its own and no lock is held across services. It would exist even if compensations never failed. Statement 2 is a separate consequence of compensations being ordinary calls to ordinary services.</p>` }
+  ]},
+
+{ id:'s3', name:'Section 3', type:'multi',
+  rules:[
+    'Six questions. Each has four options, and one or more of them are correct.',
+    'Marking: +4 if you choose every correct option and no other. +1 for each correct option if you choose only some of them and no wrong one. −2 if you choose any wrong option. 0 if you do not attempt.'
+  ],
+  items:[
+  { id:'q13', type:'multi', fig:'m1',
+    stem:`<p>The figure shows an order saga run as choreography on a durable log. Which statements are correct?</p>`,
+    opts:[
+      `A stock-out leads to a refund only if a worker that can issue refunds, here the payment worker, also subscribes to <code>InventoryFailed</code>.`,
+      `A new analytics worker that reacts to <code>PaymentCharged</code> can be added without touching the existing workers.`,
+      `Inserting a fraud check between payment and inventory changes which events the neighbouring workers consume or emit.`,
+      `The full order of steps is written down in one place: the API server that emits <code>OrderPlaced</code>.`
+    ], ans:[0,1,2],
+    why:`<ul><li>(A) Correct. Nothing in the figure reacts to <code>InventoryFailed</code> yet, so today a stock-out leaves the customer charged. Compensation flows the same way as the forward path, only backwards: the payment worker subscribes to <code>InventoryFailed</code>, refunds, and emits <code>PaymentRefunded</code>.</li><li>(B) Correct. Appending a reaction is easy: it is one more consumer of an event that already exists.</li><li>(C) Correct. Inserting a step in the middle is the hard case. The inventory worker must stop reacting to <code>PaymentCharged</code> and react to the fraud check’s event instead, so the neighbours’ event contracts change.</li><li>(D) Wrong. With choreography the flow is not written down anywhere. It emerges from which workers consume which events, and the API server is only a thin wrapper that emits the first one.</li></ul>` },
+
+  { id:'q14', type:'multi',
+    stem:`<p>A workflow calls <code>processPayment</code>, <code>reserveInventory</code>, <code>shipOrder</code> and <code>sendConfirmationEmail</code> in that order. Worker W1 dies after the result of <code>reserveInventory</code> is recorded in history but before <code>shipOrder</code> is scheduled. Worker W2 picks the execution up. Which statements are correct?</p>`,
+    opts:[
+      `W2 runs the workflow function again from its first line.`,
+      `The payment service receives a second charge request during W2’s replay.`,
+      `On W2, <code>await processPayment(order)</code> resolves with the same result that W1 saw.`,
+      `If a deploy between the crash and the replay swaps the order of the first two Activity calls without a patch, the replay no longer matches the recorded history.`
+    ], ans:[0,2,3],
+    why:`<ul><li>(A) Correct. Recovery is replay from the top, not a jump to a saved line number.</li><li>(B) Wrong. When the replay reaches an Activity that already ran, history hands back the recorded result. The Activity does not fire again, so the customer is charged once.</li><li>(C) Correct, for the same reason: the result comes from history.</li><li>(D) Correct. Replay depends on the code asking for the same things in the same order as history recorded. This is why changes to workflows that are already running need versioning or a patch.</li></ul>` },
+
+  { id:'q15', type:'multi',
+    stem:`<p>An Activity sends the order confirmation email. Which statements are correct?</p>`,
+    opts:[
+      `Attempts are at-least-once. It is the effect that can be made exactly-once, by making the Activity idempotent.`,
+      `Checking for an idempotency key before sending, and writing the key after sending, removes every possibility of a duplicate email.`,
+      `Writing <code>IN_PROGRESS</code> before the send and <code>COMPLETED</code> after it lets a retry tell “done” from “unknown”. The unknown case should be reconciled, for example by asking the provider what it received, and not re-sent blindly.`,
+      `Because a retry can repeat a side effect, irreversible calls such as charging a card belong in workflow code and not in Activities.`
+    ], ans:[0,2],
+    why:`<ul><li>(A) Correct. Exactly-once delivery is not possible across a network, which is why the guarantee is stated about the effect.</li><li>(B) Wrong. The check and the action are not atomic. The process can die after the email is sent and before the key is written, and the retry then finds no key and sends again.</li><li>(C) Correct. A retry that finds <code>COMPLETED</code> skips the send, one that finds nothing proceeds, and <code>IN_PROGRESS</code> is the only case that needs care. The window cannot be closed completely, but it can be shrunk and made visible.</li><li>(D) Wrong, and backwards. Side effects belong in Activities, where results are recorded and retries are managed. Workflow code must stay deterministic.</li></ul>` },
+
+  { id:'q16', type:'multi',
+    stem:`<p>A per-user workflow loops for months, handling one event per iteration. Which statements about keeping its state in check are correct?</p>`,
+    opts:[
+      `Passing an identifier that can be looked up elsewhere, instead of a large payload, shrinks what each Activity adds to history.`,
+      `Continue-as-New ends the current run and starts a new one whose history is empty.`,
+      `The new run is seeded with the captured state, so it carries on from the current position and not from step 1.`,
+      `After a crash, the work of replay grows with the length of the recorded history.`
+    ], ans:[0,1,2,3],
+    why:`<p>All four are correct, and together they are the whole answer to “how do you keep workflow state in check?”.</p><ul><li>(A) Activity inputs and results are persisted in history, so smaller ones mean a smaller history.</li><li>(B) and (C) describe Continue-as-New: capture the current state, start a fresh run with an empty history, and seed it with only that state.</li><li>(D) is why it matters. Replay walks the history from the beginning, so an unbounded history means unbounded recovery work.</li></ul>` },
+
+  { id:'q17', type:'multi',
+    stem:`<p>Which pairings of situation and coordination style are sound?</p>`,
+    opts:[
+      `Several independent teams each react to <code>OrderPlaced</code>; the flow is of middling complexity and loosely coupled. Use choreography.`,
+      `A 14-step claims process has branches, human approvals and an undo for each step, and must be readable end to end. Use orchestration.`,
+      `“Which chain of events led to this <code>InventoryReserved</code>?” must be answerable with no extra tooling. Use choreography, because the log is a complete audit trail.`,
+      `The order of steps changes often and should be changed in one place. Use orchestration.`
+    ], ans:[0,1,3],
+    why:`<ul><li>(A) Sound. Choreography suits independent services that are not tightly coupled, and workflows of middling complexity.</li><li>(B) Sound. The hairiest workflows want a central coordinator, because the whole sequence then lives in one place.</li><li>(C) Unsound. The audit trail is real, but making sense of it is the hard part. Tracing a chain of events through an implicit flow means building tooling on top of the log.</li><li>(D) Sound. With choreography, changing the sequence means changing event contracts across many workers. With orchestration it is one piece of code.</li></ul>` },
+
+  { id:'q18', type:'multi',
+    stem:`<p>Compare a replay-based engine such as Temporal with AWS Step Functions (Standard). Which statements are correct?</p>`,
+    opts:[
+      `Temporal rebuilds a workflow’s state by replaying its code against recorded history. Step Functions keeps the state machine’s position on the server and continues from it.`,
+      `Both need the author’s workflow logic to be deterministic, because both recover by replay.`,
+      `A process that must wait 18 months for one event does not fit in a single Step Functions Standard execution.`,
+      `Step Functions Standard can pass a 2 MB document from one state to the next.`
+    ], ans:[0,2],
+    why:`<ul><li>(A) Correct. Both give you durable execution, but the recovery mechanics differ in exactly this way.</li><li>(B) Wrong. The determinism rule comes from replaying code. Step Functions does not replay your logic, so the rule does not arise there.</li><li>(C) Correct. Standard workflows cap execution duration at one year.</li><li>(D) Wrong. Payloads between states are capped at 256 KB. The usual fix is the same as for history size: pass a reference, not the document.</li></ul>` }
+  ]},
+
+{ id:'s4', name:'Section 4', type:'num',
+  rules:[
+    'Six questions. The answer to each is a whole number.',
+    'Marking: +4 for the correct number, 0 otherwise. There are no negative marks in this section.'
+  ],
+  items:[
+  { id:'q19', type:'num', fig:'n1', ans:10,
+    stem:`<p>The saga in the figure has four forward steps, T1 to T4. T1, T2 and T3 have compensations C1, C2 and C3. Every forward step and every compensation is an Activity with a maximum of 3 attempts.</p><p>T1, T2 and T3 each succeed on the first attempt. T4 fails on every attempt. During the unwind, C3 succeeds first time, C2 fails once and then succeeds, and C1 succeeds first time. How many calls to external services does this saga instance make in total?</p>`,
+    why:`<p>Forward: T1, T2 and T3 take one call each, and T4 uses all 3 attempts. That is 1 + 1 + 1 + 3 = 6.</p><p>Unwind, in reverse order: C3 takes 1 call, C2 takes 2, C1 takes 1. That is 4. T4 never committed, so it has nothing to compensate.</p><p>Total: 6 + 4 = <b>10</b>.</p>` },
+
+  { id:'q20', type:'num', fig:'n2', ans:36,
+    stem:`<p>A workflow calls five Activities in sequence, a1 to a5, and waits for an external signal between a4 and a5. Events, in order:</p><p>(i) On worker W1, a1 and a2 complete and are recorded. W1 then crashes.<br>(ii) W2 takes over. The first attempt at a3 performs its side effect, but the activity worker dies before reporting, so the attempt times out. The second attempt succeeds. Then a4 completes.<br>(iii) While the workflow waits for the signal, W2 is replaced in a deploy. When the signal arrives, W3 takes over, and a5 completes.</p><p>A worker runs the workflow function from its first line only when it takes over an execution that it does not hold in memory. Let R be the number of times the workflow function is started from its first line, counting the original start. Let E be the number of times an Activity’s side effect is actually performed. Find 10R + E.</p>`,
+    why:`<p>R: the function starts from the top on W1 (the original start), on W2 (replay after the crash) and on W3 (replay after the deploy). R = 3.</p><p>E: a1, a2, a4 and a5 each run once, because every replay answers them from history. a3 runs twice, because its first attempt did the work but never reported, so the engine could not tell and retried. E = 1 + 1 + 2 + 1 + 1 = 6.</p><p>10R + E = 30 + 6 = <b>36</b>.</p><p>The point of the question: replays of the workflow function cost nothing in side effects. The one duplicate came from an Activity retry, which is why Activities need to be idempotent.</p>` },
+
+  { id:'q21', type:'num', fig:'n3', ans:3,
+    stem:`<p>An inventory worker reads partition 3 of an orders topic. It commits its position only after events are fully processed, and its last commit says “next offset to read: 44”. It then fully processes the events at offsets 44, 45 and 46, and is part of the way through offset 47 when its pod is killed. Another worker in the same consumer group is assigned the partition.</p><p>How many events are processed to completion twice?</p>`,
+    why:`<p>The new worker resumes from the last committed position, offset 44. It reprocesses 44, 45 and 46, each of which had already been fully processed. Offset 47 is completed only once, although any partial work done on it may be repeated.</p><p>Answer: <b>3</b>.</p><p>Nothing is lost, but some events are handled twice in the handoff. That is the reason choreography workers must be idempotent.</p>` },
+
+  { id:'q22', type:'num', ans:903,
+    stem:`<p>An Activity is configured with a start-to-close timeout of 5 minutes and at most 3 attempts. The wait before the first retry is 1 s, and it doubles for each further retry. The label service hangs on every attempt.</p><p>Ignoring queueing delays, how many seconds after the first attempt starts does the workflow learn that the Activity has failed?</p>`,
+    why:`<p>Each attempt runs for the full 300 s before it times out. The waits between attempts are 1 s and 2 s.</p><p>300 + 1 + 300 + 2 + 300 = <b>903</b> seconds, a little over 15 minutes.</p><p>Worth saying in an interview: timeouts and attempt limits multiply. For a step the user is waiting on, this configuration is far too patient.</p>` },
+
+  { id:'q23', type:'num', fig:'n5', ans:8,
+    stem:`<p>A per-user workflow handles 40 events a day. Handling one event appends 6 entries to the workflow’s history. The team’s policy is to call Continue-as-New as soon as the current run’s history reaches 3,000 entries.</p><p>Over 90 days, how many runs, counting the first, does this user’s workflow consist of?</p>`,
+    why:`<p>Events in 90 days: 40 × 90 = 3,600.</p><p>Events per run: 3,000 ÷ 6 = 500.</p><p>Continue-as-New is called after events 500, 1,000 and so on up to 3,500, which is 7 times. The eighth run holds events 3,501 to 3,600.</p><p>Answer: <b>8</b> runs. Without the policy there would be one run with 21,600 entries, and every replay would have to walk all of them.</p>` },
+
+  { id:'q24', type:'num', fig:'n6', ans:22,
+    stem:`<p>An Activity sends an email in four steps: (1) write the idempotency key as <code>IN_PROGRESS</code>, (2) call the email provider, (3) write the key as <code>COMPLETED</code>, (4) report success to the engine.</p><p>Consider the four crash windows in the figure: before step 1, between 1 and 2, between 2 and 3, and between 3 and 4. In each case the engine retries the Activity. Let P be the number of windows after which the retry must park the send for reconciliation. Let Q be the number of windows in which the email had already been sent before the crash. Find 10P + Q.</p>`,
+    why:`<ul><li>Window 1: no key exists. The retry proceeds normally. Email not yet sent.</li><li>Window 2: the key is <code>IN_PROGRESS</code>. The retry cannot tell whether the send happened. Reconcile. Email not yet sent.</li><li>Window 3: the key is <code>IN_PROGRESS</code>. Reconcile. Email already sent.</li><li>Window 4: the key is <code>COMPLETED</code>. The retry skips the send. Email already sent.</li></ul><p>P = 2 (windows 2 and 3). Q = 2 (windows 3 and 4). 10P + Q = <b>22</b>.</p><p>Windows 2 and 3 look identical to the retry, which is the whole reason for reconciling instead of guessing. With only a key written after the send, window 3 would produce a silent duplicate.</p>` }
+  ]},
+
+{ id:'s5', name:'Section 5', type:'single',
+  rules:[
+    'Three questions. Match each entry in List I with one entry in List II, then choose the option that gives the correct matching. List II has one entry more than List I.',
+    'Marking: +3 for the correct option, 0 if you do not attempt, −1 for a wrong option.'
+  ],
+  items:[
+  { id:'q25', type:'single',
+    stem:`<p>Match each tool with the description that fits it.</p>`,
+    lists:{ I:[['P','Temporal'],['Q','AWS Step Functions (Standard)'],['R','Apache Airflow'],['S','DBOS']],
+            II:[['1','Durable execution layered on Postgres'],['2','Workflows written as code; recovery by replaying that code against recorded history; you operate it or buy the hosted service'],['3','Scheduled batch DAGs defined in Python; strong for ETL, a poor fit for event-driven, user-facing flows'],['4','Serverless state machines defined in JSON; executions capped at one year, payloads between states at 256 KB'],['5','JSON-defined workflows that originated at Netflix']] },
+    opts:[ `P → 2, Q → 4, R → 5, S → 1`, `P → 4, Q → 2, R → 3, S → 1`, `P → 2, Q → 4, R → 3, S → 1`, `P → 2, Q → 3, R → 4, S → 5` ], ans:[2],
+    why:`<p>Temporal is the code-first, replay-based engine (2). Step Functions is the managed state machine with the one-year and 256 KB limits (4). Airflow is for scheduled batch work and ETL (3). DBOS layers durable execution on Postgres (1).</p><p>Entry 5 describes Conductor, which is not in List I.</p>` },
+
+  { id:'q26', type:'single',
+    stem:`<p>Match each problem with the mechanism that addresses it.</p>`,
+    lists:{ I:[['P','The worker hosting a workflow dies in the middle of an order'],['Q','The engine cannot tell whether “send email” finished'],['R','The history of a looping workflow keeps growing for months'],['S','A step must be added for executions that are already running on a replay-based engine']],
+            II:[['1','Continue-as-New'],['2','A patched() branch'],['3','Replay from recorded history on another worker'],['4','An idempotency key checked by the Activity'],['5','Two-phase commit']] },
+    opts:[ `P → 4, Q → 3, R → 1, S → 2`, `P → 3, Q → 4, R → 1, S → 2`, `P → 3, Q → 2, R → 1, S → 4`, `P → 3, Q → 4, R → 2, S → 1` ], ans:[1],
+    why:`<p>A dead worker is handled by replay on another worker (P → 3). An uncertain Activity result is handled by making the Activity idempotent (Q → 4). Unbounded history is handled by Continue-as-New (R → 1). Changing a running workflow is handled by a patch that picks the path deterministically (S → 2).</p><p>Two-phase commit is the distractor. It is the approach sagas exist to avoid.</p>` },
+
+  { id:'q27', type:'single',
+    stem:`<p>Match each requirement with the approach that fits it best.</p>`,
+    lists:{ I:[['P','Resize an uploaded image; one step; the client does not wait'],['Q','Charge, reserve and ship, undoing earlier steps if a later one fails; complex branching; one team owns the flow'],['R','Wait for a person to respond, with a timeout and a fallback to the next candidate'],['S','Several independent teams react to the same business event; middling complexity; no central owner']],
+            II:[['1','Event-driven choreography on a durable log'],['2','A message queue and a worker'],['3','An orchestrated saga on a workflow engine'],['4','A durable workflow that waits on a signal with a durable timer'],['5','A synchronous request wrapped in two-phase commit']] },
+    opts:[ `P → 2, Q → 4, R → 3, S → 1`, `P → 1, Q → 3, R → 4, S → 2`, `P → 2, Q → 3, R → 5, S → 1`, `P → 2, Q → 3, R → 4, S → 1` ], ans:[3],
+    why:`<p>A single asynchronous step needs only a queue (P → 2). Compensation with complex branching under one owner wants an orchestrated saga (Q → 3). A human in the loop with a timeout is the signal-plus-timer pattern (R → 4). Independent teams reacting to shared events is where choreography fits (S → 1).</p><p>Entry 5 fits nothing here. Locks cannot be held across services for as long as these processes run.</p>` }
+  ]},
+
+{ id:'s6', name:'Section 6', type:'mixed',
+  rules:[
+    'Three passages, each followed by three questions. The type of each question is given above it.',
+    'Marking follows the type: one correct option as in Section 1, one or more correct as in Section 3, whole number as in Section 4.'
+  ],
+  passages:[
+  { title:'Passage I: ride matching', fig:'uber',
+    text:`<p>A ride-sharing backend must match a rider with a nearby driver in under a minute. A ride is offered to one driver at a time, and a driver sees one offer at a time. The driver has 10 s to accept or decline. On a decline, or on silence, the system moves to the next driver in a ranked list.</p><p>The team compares two designs for the silent driver.</p><p><b>Design X, delay queue.</b> When an offer is pushed to a driver, a message carrying the ride and the driver is also enqueued with a 10 s delay. When it is delivered, a handler checks whether the ride is still unassigned. If it is, the handler offers the ride to the next driver and enqueues another delayed message.</p><p><b>Design Y, durable execution.</b> The whole match is one workflow, shown in the figure: offer the ride, wait for an accept or decline signal with a 10 s timer, and loop to the next driver until someone accepts or the list runs out.</p>`,
+    items:[
+    { id:'q28', type:'single',
+      stem:`<p>In Design X, driver D1 taps Accept at t = 9.9 s. The request is still in flight when D1’s delayed message is delivered at t = 10.0 s. Which statement about Design X is most accurate?</p>`,
+      opts:[
+        `Nothing can go wrong, because accepting a ride cancels the delayed message automatically.`,
+        `Nothing can go wrong, because a delay queue delivers each message exactly once.`,
+        `The handler’s “is the ride still unassigned?” check races with the write made by the accept. Unless both go through one conditional update on the ride, D2 can be offered a ride that D1 believes is theirs.`,
+        `The race goes away if the delay is raised from 10 s to 11 s.`
+      ], ans:[2],
+      why:`<p>The weak point of the delay-queue design is coordination between the delayed message and the accept. A message that was scheduled before the accept still arrives after it, and nothing cancels it for you (A). How many times it is delivered is beside the point (B), because one delivery at the wrong moment is enough.</p><p>The handler reads the ride, sees it unassigned, and moves on to D2 while D1’s accept is about to land. The cure is to make “assign to D1” and “move on from D1” compete through a single conditional write on the ride, so that exactly one wins. A longer delay (D) only moves the race to 11 s.</p><p>In Design Y this coordination is the engine’s job: the signal and the timer are both events on one workflow, handled one at a time.</p>` },
+    { id:'q29', type:'num', ans:43,
+      stem:`<p>In Design Y the ranked list is D1 to D6. D1 and D2 never respond. D3 declines 4 s after being offered the ride. D4 never responds. D5 accepts 6 s after being offered the ride. Ignore network and scheduling delays.</p><p>Let T be the number of seconds from the start of the workflow to the match. Let F be the number of 10 s timers that fire. Find T + F.</p>`,
+      why:`<p>T: 10 (D1) + 10 (D2) + 4 (D3) + 10 (D4) + 6 (D5) = 40 s.</p><p>F: a timer is started for each of the five offers. It fires for D1, D2 and D4. For D3 and D5 the signal arrives first and the timer is cancelled. F = 3.</p><p>T + F = <b>43</b>.</p><p>At 40 s the match is still inside the one-minute target, but only just: one more silent driver before D5 would have taken it to 50 s. A strict sequential 10 s window is a real cost against that target.</p>` },
+    { id:'q30', type:'multi',
+      stem:`<p>The matching workers in Design Y are redeployed while 30,000 matches are in flight, each somewhere inside a 10 s wait. Which statements are correct?</p>`,
+      opts:[
+        `Each match resumes on a new worker by replaying its history, so drivers who were already skipped are not offered the ride again.`,
+        `Every in-flight match restarts its 10 s wait from zero, because the timer lives in the worker’s memory.`,
+        `An accept that arrives while no worker holds the workflow in memory is lost.`,
+        `Had the 10 s timeout been an in-memory timer inside the matching service, the redeploy would have lost those timeouts.`
+      ], ans:[0,3],
+      why:`<ul><li>(A) Correct. Earlier offers and their outcomes are in history, so replay answers them without sending them again.</li><li>(B) Wrong. The timer is durable and belongs to the engine. It keeps running while the workers restart.</li><li>(C) Wrong. The accept is delivered through the engine’s API to the workflow’s ID. The engine records it and wakes the execution on whichever worker is available.</li><li>(D) Correct. An in-memory timeout dies with its process, which leaves the driver locked or the ride stuck until some sweeper notices. That is the argument for moving the wait into a durable workflow.</li></ul>` }
+    ]},
+
+  { title:'Passage II: card payments', fig:'pay',
+    text:`<p>A payment processor lets merchants start a payment for a given amount, lets customers pay by card, and lets merchants see status updates such as pending, succeeded or failed. Peak load is about 10,000 payments a second.</p><p>Card payments go through external payment networks, which are asynchronous by nature. A call to a network can succeed, be declined, or time out with no answer at all. The team treats each payment as a multi-step process, shown in the figure: record the attempt, call the network, record the outcome, then notify the merchant with a webhook.</p>`,
+    items:[
+    { id:'q31', type:'single',
+      stem:`<p>The call to the card network times out, and the processor has no response of any kind. Which handling protects financial integrity?</p>`,
+      opts:[
+        `Mark the payment failed and ask the merchant to start a new payment.`,
+        `Send the charge again as a fresh request, and repeat until the network answers.`,
+        `Put the network call and the status write in one two-phase commit.`,
+        `Leave the payment pending. Retry with the same idempotency key, or ask the network what happened to that attempt, and set the final status only from an authoritative answer.`
+      ], ans:[3],
+      why:`<p>A timeout means “unknown”, not “failed”. The network may have taken the money. The breakdown names both ways this goes wrong: a retry that charges the customer twice, and a payment that succeeded at the bank but was reported as failed.</p><ul><li>(A) turns unknown into failed. If the charge went through, the customer has paid for a payment the merchant believes failed, and a second payment charges them twice.</li><li>(B) retries without idempotency, so every retry can be a new charge.</li><li>(C) is not available. An external network does not take part in your transaction protocol.</li><li>(D) keeps the honest state, pending, and resolves it in the two safe ways: a retry that the network can recognise as the same attempt, or a query for that attempt’s outcome. This is the reconciliation path for the one case a retry cannot settle by itself.</li></ul>` },
+    { id:'q32', type:'single',
+      stem:`<p>In the pipeline, “record the attempt” is written durably before “call the network”. What does that ordering buy?</p>`,
+      opts:[
+        `If the process dies after the network has taken the money, the recovering coordinator finds evidence that a call may have been made and can reconcile it, instead of money having moved with no record.`,
+        `The network refuses calls for payments that the processor has not stored.`,
+        `It holds a lock on the payment row for the duration of the network call.`,
+        `It makes the network call deterministic for replay.`
+      ], ans:[0],
+      why:`<p>This is the <code>IN_PROGRESS</code> marker from the idempotency pattern, applied to money. State is recorded on both sides of the irreversible action. A crash between the call and the outcome then leaves a visible “attempted, outcome unknown” record, and recovery knows that it must reconcile.</p><p>Recording only afterwards would allow a charge with no trace at all. (C) describes the long-held lock that sagas exist to avoid. (D) mixes up two things: the call is an Activity, and Activities are made safe by idempotency, not by determinism.</p>` },
+    { id:'q33', type:'multi',
+      stem:`<p>The “notify merchant” step sends a webhook. The merchant’s server processes it and returns 200, but the response is lost in transit. Which statements are correct?</p>`,
+      opts:[
+        `The processor retries, so the merchant can receive the same event twice.`,
+        `The merchant should deduplicate on an event ID carried in the webhook.`,
+        `Running the pipeline on a workflow engine makes webhook delivery exactly-once.`,
+        `A webhook that keeps failing is a reason to keep retrying and to alert, not to reverse a charge that succeeded.`
+      ], ans:[0,1,3],
+      why:`<ul><li>(A) Correct. From the processor’s side the attempt has no recorded success, so it is retried. Attempts are at-least-once.</li><li>(B) Correct. The receiver makes the effect exactly-once by recognising an event it has already handled.</li><li>(C) Wrong. An engine gives you durable retries, not exactly-once delivery across a network. It retries precisely when it cannot tell whether the step finished.</li><li>(D) Correct. Not every failed step should unwind the saga. Once the charge has succeeded, notification is a step to push forward with retries. The merchant can also read the payment’s status directly.</li></ul>` }
+    ]},
+
+  { title:'Passage III: notification platform', fig:'notif',
+    text:`<p>An internal notification platform takes requests from other teams and delivers them to users by push, email or SMS, either immediately or at a scheduled time. One caller is the auth service sending a login code. Another is marketing sending a promotion to a million users. Users can opt out of channels and set quiet hours.</p><p>Volume is about 10 million notifications a day, but a campaign of 1 million should go out within 5 minutes, so the platform is sized for bursts of 5,000 a second. Three things are wanted: an accepted notification is never dropped; a high-priority notification is delivered within 5 seconds of being accepted, even during a campaign; and duplicates are kept rare, although delivery is at-least-once.</p><p>Each notification passes through the steps in the figure.</p>`,
+    items:[
+    { id:'q34', type:'single',
+      stem:`<p>“An accepted notification is never dropped.” Which design gives that guarantee?</p>`,
+      opts:[
+        `Reply “accepted” once the request is validated. A background thread writes it to the queue shortly afterwards.`,
+        `Reply “accepted” only after the notification is written durably. Workers acknowledge it only after the hand-off to the provider and the recorded outcome.`,
+        `Reply “accepted” only after the provider confirms delivery to the device.`,
+        `Keep accepted notifications in each API server’s memory and rely on callers to retry.`
+      ], ans:[1],
+      why:`<p>“Never dropped” needs two things: the promise is made only after a durable write, and progress is acknowledged only after the work is done.</p><ul><li>(A) and (D) both leave a gap in which the caller has been told “accepted” and the only copy is in a process that can die.</li><li>(C) is safe but wrong for the job. It ties every caller to the providers’ latency, it cannot work for scheduled sends, and it turns an asynchronous multi-step process into a synchronous call.</li><li>(B) is the breakdown’s shape. Accepting is one durable publish to a queue, and a worker deletes the message only when it has finished. Its cost is that a step can run twice after a crash, which is why deduplication appears as a separate requirement.</li></ul>` },
+    { id:'q35', type:'num', ans:180,
+      stem:`<p>Suppose all traffic shares one first-in, first-out queue that is drained at 5,000 notifications a second. A campaign of 1,000,000 notifications is enqueued at t = 0. A login code is enqueued at t = 20 s.</p><p>How many seconds does the login code wait in the queue before a worker picks it up?</p>`,
+      why:`<p>By t = 20 s the workers have drained 20 × 5,000 = 100,000 notifications, so 900,000 are still ahead of the login code.</p><p>900,000 ÷ 5,000 = <b>180</b> seconds.</p><p>That is 36 times the 5-second target, and it is why bulk and critical traffic cannot share a lane. The breakdown’s own example is the same sum with the login code a full million messages back, which gives 200 seconds. Critical notifications need their own queue and their own worker capacity, so that a campaign can never sit in front of them.</p>` },
+    { id:'q36', type:'multi',
+      stem:`<p>After a worker crash, the “hand to provider” step for an SMS is attempted again. Which measures make it less likely that the user receives the SMS twice?</p>`,
+      opts:[
+        `Derive one idempotency key for each notification and channel, and check and record it around the send.`,
+        `Pass that same key to the provider on every attempt, where the provider’s API accepts one.`,
+        `Generate a fresh random key for each attempt.`,
+        `Configure the queue for exactly-once delivery, so that the step is never retried.`
+      ], ans:[0,1],
+      why:`<ul><li>(A) Correct. A stable key lets a retry recognise work that is already done. Where the key is written relative to the provider call decides which way a crash fails, and Question 56 works through that.</li><li>(B) Correct. If the provider deduplicates on the key as well, a repeat that slips past our own check is caught on the provider’s side.</li><li>(C) Wrong. A new key for each attempt makes every retry look like a new notification, which defeats the purpose.</li><li>(D) Wrong. Exactly-once delivery is not achievable across a network. What you can have is at-least-once attempts with an exactly-once effect, and that is what (A) and (B) build.</li></ul>` }
+    ]}
+  ]},
+
+{ id:'s7', name:'Section 7', type:'mixed',
+  rules:[
+    'Two passages on the Payment System breakdown, with ten questions in all. The type of each question is given above it.',
+    'Marking follows the type: one correct option as in Section 1, one or more correct as in Section 3, whole number as in Section 4.'
+  ],
+  passages:[
+  { title:'Passage IV: one intent, many transactions', fig:'pi',
+    text:`<p>A merchant starts a payment by creating a PaymentIntent for an amount. The intent stands for the merchant’s intention to collect that amount. It owns the payment’s state machine, from created to authorized to captured, with canceled and refunded as the other outcomes, and it enforces idempotency for retries.</p><p>Each movement of money is a Transaction linked to one PaymentIntent, so one intent can have many transactions. A charge that is declined and a later retry are two Transactions under the same intent, and a refund is another.</p><p>When card details arrive, the Transaction Service writes a Transaction as pending, sends the authorization to the card network, records the first answer, and keeps listening for later callbacks such as settlement. The network lies outside the system. A request that the processor has given up on may still be working its way through, and a request that succeeded may lose its response on the way back.</p>`,
+    items:[
+    { id:'q37', type:'single',
+      stem:`<p>A customer pays $50. The authorization request times out, and the merchant, seeing no result, submits the charge again for the same PaymentIntent. Which part of the design stands between this retry and a second $50 charge?</p>`,
+      opts:[
+        `Every submission creates its own Transaction, and Transactions are independent of one another.`,
+        `The API gateway rate-limits the merchant, so the second submission is rejected.`,
+        `The PaymentIntent owns the state machine and enforces idempotency. The retry is judged against the intent’s state, so a second charge is not issued while an earlier attempt is unresolved or has succeeded.`,
+        `The card network treats two charges for the same card and amount as one.`
+      ], ans:[2],
+      why:`<p>Retries are normal. After a decline, the merchant can try again with the same PaymentIntent, and that creates a new Transaction. So the Transaction cannot be where a double charge is stopped, and (A) describes the danger, not the defence.</p><p>The guard sits one level up. The intent holds the state machine and enforces idempotency for retries, so the question “has this intent already been charged, or is a charge still unresolved?” is asked before any new money moves. Rate limiting (B) is about volume, not correctness, and nothing in the design relies on the network to deduplicate for us (D).</p>` },
+
+    { id:'q38', type:'multi',
+      stem:`<p>Which statements about working with the card network are correct?</p>`,
+      opts:[
+        `A request that the processor has timed out on can still succeed at the network afterwards.`,
+        `Treating every timeout as a failure can leave a customer charged for goods that the merchant never ships.`,
+        `The first approve-or-decline answer is the last the processor will hear about that transaction.`,
+        `The design goal is to remove the uncertainty by making the network call synchronous from end to end.`
+      ], ans:[0,1],
+      why:`<ul><li>(A) Correct. The networks have their own queues, retries and batch windows. “Timed out” on our side says nothing certain about their side.</li><li>(B) Correct. This is the second of the two failures the breakdown names. The payment succeeds at the bank, we report failure, the merchant does not ship, and the card is charged anyway. The first failure is the double charge.</li><li>(C) Wrong. Authorization is only the first step. Settlement and chargebacks arrive later as callbacks, minutes or days afterwards.</li><li>(D) Wrong. The asynchronous behaviour cannot be removed. The design accepts the uncertainty and records every attempt so that it can be resolved.</li></ul>` },
+
+    { id:'q39', type:'single',
+      stem:`<p>Three candidates handle a timeout from the card network. X marks the payment as failed. Y keeps the transaction pending, retries idempotently, and resolves the pending state when an answer arrives. Z does what Y does, and also records every attempt in an event log that a reconciliation worker compares with the network’s own records.</p><p>Which ordering, from weakest to strongest on financial integrity, is right, and for the right reason?</p>`,
+      opts:[
+        `Y, X, Z. Keeping a payment pending is worse than failing it, because the merchant is left waiting.`,
+        `X, Y, Z. X can report failure for a charge that went through. Y prevents the double charge but relies on some retry getting an answer. Z still converges when no answer ever comes, because the network’s records settle the question.`,
+        `X, Z, Y. Reconciliation runs late, so it is weaker than resolving the pending state on the request path.`,
+        `Z, Y, X. Each extra mechanism is one more place for the system to lose a transaction.`
+      ], ans:[1],
+      why:`<p>This is the breakdown’s own ladder. Assuming that a timeout means failure is tolerated from a mid-level candidate, though it is not ideal. A senior candidate is expected to see that a timeout is not a failure, and to propose idempotent transactions with a pending state that is resolved later. A staff candidate adds an event log and reconciliation, because that matches how payment networks actually behave.</p><p>(A) and (D) mistake honesty for weakness: pending is the true state, and failed is a guess. (C) misses that reconciliation is added to Y and does not replace it. It settles the cases in which a retry never gets an answer.</p>` },
+
+    { id:'q40', type:'num', ans:13,
+      stem:`<p>A customer checks out an order of $120. The first card is declined for insufficient funds. The customer enters a second card, and that charge succeeds. A week later the merchant refunds $20. Assume that refunds are in scope.</p><p>Let I be the number of PaymentIntents and T the number of Transactions that this order has produced. Find 10I + T.</p>`,
+      why:`<p>I = 1. The merchant created one intention to collect $120, and every attempt hangs off it.</p><p>T = 3: the declined charge, the successful charge, and the refund, which is a Transaction with a negative amount linked to the same intent.</p><p>10I + T = <b>13</b>.</p><p>The merchant sees one payment with one status. The system keeps the full list of money movements underneath it.</p>` }
+    ]},
+
+  { title:'Passage V: the event stream and the merchant', fig:'cdc',
+    text:`<p>Every change to a PaymentIntent or a Transaction is written to the operational database. Change data capture (CDC) reads those changes and publishes them to a Kafka event stream, which becomes the immutable record of what happened and in what order. The stream is partitioned by <code>payment_intent_id</code>.</p><p>Three consumers read the stream, as the figure shows. One archives events to object storage. A reconciliation worker compares the system’s records with the card networks’ own, from batch files or direct queries, and writes corrections back. A webhook service checks whether the merchant subscribed to the event type and, if so, POSTs a signed event to the merchant’s callback URL. A failed delivery is retried with exponential backoff: the first wait is 5 s, and each later wait is five times the one before, up to a ceiling of 1 hour.</p><p>Around each transaction the Transaction Service emits two events: a created event when it begins processing, before the database write is complete, and a completed event after the write has succeeded.</p><p>Peak load is 10,000 transactions a second, and a row is about 500 bytes.</p>`,
+    items:[
+    { id:'q41', type:'single',
+      stem:`<p>Why is the stream partitioned by <code>payment_intent_id</code>?</p>`,
+      opts:[
+        `So that each merchant’s events are kept apart from other merchants’.`,
+        `So that Kafka can discard a second event that carries the same key.`,
+        `So that fewer partitions are needed to carry 10,000 messages a second.`,
+        `So that all events for one PaymentIntent are consumed in order, while different intents are processed in parallel.`
+      ], ans:[3],
+      why:`<p>Kafka keeps order within a partition, not across partitions. Keying by <code>payment_intent_id</code> puts every state change of one intent (created, then authorized, then captured) in one partition, so every consumer sees them in that order. Different intents hash to different partitions and are processed in parallel.</p><p>Without the key, the webhook service could tell a merchant that a payment was captured before telling them it was authorized.</p><p>The key does not deduplicate anything (B). It does not reduce the partition count either (C): at 5,000 to 10,000 messages a second for each partition, 10,000 a second still wants three to five partitions. The merchant is the shard key of the database, not the partition key of the stream (A).</p>` },
+
+    { id:'q42', type:'num', ans:21,
+      stem:`<p>A recovery job finds four transactions. For each it checks three things: whether the created event was emitted, whether the database write happened, and whether the completed event was emitted.</p><p>T1: created event yes, database write no, completed event no.<br>T2: created event yes, database write yes, completed event no.<br>T3: created event no, database write no, completed event no.<br>T4: created event yes, database write yes, completed event yes.</p><p>Let A be the number of transactions that must be retried as a whole. Let B be the number for which re-emitting the completed event is enough. Find 10A + B.</p>`,
+      why:`<ul><li>T1 is retried. Processing began but the write never happened. The breakdown notes that most missing completed events look like this: an external timeout before the database write.</li><li>T2 needs only its completed event. Comparing the created event with the database shows that the write already happened, so repeating the transaction would be wrong.</li><li>T3 is retried. When the created event fails to emit, the transaction is put in a locked or failed state and can be tried again.</li><li>T4 needs nothing.</li></ul><p>A = 2 and B = 1, so 10A + B = <b>21</b>.</p><p>The created event plays the part of the <code>IN_PROGRESS</code> marker in Question 24. It is written before the risky step, so that recovery can tell “never started” from “started, outcome not yet published”. For T1 the retry must still be idempotent towards the card network, because the request may have reached it.</p>` },
+
+    { id:'q43', type:'num', ans:7505,
+      stem:`<p>A merchant’s endpoint is down from before the first delivery attempt until 2 hours after it. The webhook service makes its first attempt at t = 0 and then follows the backoff described in the passage.</p><p>At what time t, in seconds, is the webhook delivered?</p>`,
+      why:`<p>Waits: 5, 25, 125, 625 and 3,125 s. The next would be 15,625 s, so the ceiling of 1 hour applies and the wait becomes 3,600 s.</p><p>Attempts: t = 0, 5, 30, 155, 780, 3,905 and 7,505 s. The endpoint comes back at t = 7,200 s, so the first six attempts fail and the seventh succeeds.</p><p>Answer: <b>7505</b>.</p><p>The merchant hears about the payment about five minutes after recovering, not at the moment of recovery. In the meantime the status can still be read from the GET endpoint. Nothing is lost, because each delivery attempt is recorded and the event stays in the stream.</p>` },
+
+    { id:'q44', type:'multi',
+      stem:`<p>An interviewer objects: “CDC is a single point of failure. If it stops, database writes carry on but events stop reaching Kafka.” Which responses are sound?</p>`,
+      opts:[
+        `Run several independent CDC instances that read the same database.`,
+        `Alert within seconds when CDC lag grows, and keep a procedure for replaying missed events from the database’s logs.`,
+        `For critical payment events, have the application write to Kafka directly if CDC has not confirmed the event within a set time.`,
+        `Drop CDC, and have the service write each change to the database and then to Kafka itself.`
+      ], ans:[0,1,2],
+      why:`<ul><li>(A), (B) and (C) Correct. These are the three mitigations the breakdown gives: redundant CDC instances, each writing to a different Kafka cluster; fast detection with a replay path; and an application-level fallback for the events that matter most.</li><li>(D) Wrong. That is a dual write. A crash between the two writes leaves the database and the stream disagreeing, with nothing to notice it. CDC exists so that the stream is derived from committed rows and cannot disagree with them for long.</li></ul>` },
+
+    { id:'q45', type:'num', ans:90,
+      stem:`<p>Use the figures in the passage, round a day to 100,000 seconds, and take 1 TB as 1,000 GB. The operational database keeps 180 days of rows before older ones are moved to cold storage.</p><p>How many terabytes of rows does the operational database hold at steady state?</p>`,
+      why:`<p>10,000 rows a second × 500 bytes = 5 MB a second.</p><p>5 MB × 100,000 s = 500 GB a day.</p><p>500 GB × 180 days = 90,000 GB = <b>90</b> TB.</p><p>Without a retention policy the same sum gives about 180 TB after one year, and it keeps growing. Moving rows older than three to six months to object storage keeps them available for audits without weighing on the operational database.</p>` },
+
+    { id:'q46', type:'multi',
+      stem:`<p>Which statements about the webhook path are correct?</p>`,
+      opts:[
+        `A webhook is a call from the processor’s server to an HTTPS endpoint that the merchant hosts. It is not a WebSocket or SSE connection to a browser.`,
+        `The payload is signed with a shared secret, so the merchant can check that it came from the processor.`,
+        `The webhook service finds its work by polling the operational database for rows whose status has changed.`,
+        `A merchant has no way to learn a payment’s status other than waiting for the webhook.`
+      ], ans:[0,1],
+      why:`<ul><li>(A) Correct. “Real-time updates” here means server to server. WebSockets and SSE push from a server to a client such as a browser or a phone, which is a different problem.</li><li>(B) Correct. The merchant verifies the signature before trusting the payload, and then returns a 2xx to acknowledge receipt.</li><li>(C) Wrong. The webhook service is one more consumer of the Kafka stream that CDC feeds, alongside reconciliation. It reacts to events and does not poll.</li><li>(D) Wrong. The merchant can always read the status with a GET on the PaymentIntent. Polling was the first design, and webhooks were added on top of it.</li></ul>` }
+    ]}
+  ]},
+
+{ id:'s8', name:'Section 8', type:'mixed',
+  rules:[
+    'Two passages on the Notification System breakdown, with eleven questions in all. The type of each question is given above it.',
+    'Marking follows the type: one correct option (including the matching question) as in Section 1, one or more correct as in Section 3, whole number as in Section 4.'
+  ],
+  passages:[
+  { title:'Passage VI: the first working design', fig:'nhld',
+    text:`<p>The first design is a single pipeline, shown in the figure. For a send-now request, the Notification Service looks up the address, writes a Notification row as PENDING, calls the provider, updates the row to SENT or FAILED, and only then answers the caller.</p><p>For a scheduled send, the service writes the row as SCHEDULED and stops. A cron job scans every minute for scheduled rows that are due and pushes each one through the same send path. Campaigns use the same job. When a campaign’s time arrives, the job reads the segment’s membership as a snapshot, loops over the recipients pushing a send for each, and marks the campaign complete.</p><p>Just before any provider call, the user’s preferences are checked. A user can opt out of a channel and can set quiet hours. Quiet hours apply to standard notifications but not to high-priority ones. A notification stopped by this check is recorded as SUPPRESSED, with the reason.</p>`,
+    items:[
+    { id:'q47', type:'multi',
+      stem:`<p>Which weaknesses does this single pipeline have?</p>`,
+      opts:[
+        `If the service crashes after writing the PENDING row and before calling the provider, that notification is never sent.`,
+        `A slow provider makes callers wait, because the provider call is on the request path.`,
+        `When the cron job expands a campaign for a million users, a login code can end up behind those sends.`,
+        `The campaign loop runs on many machines at once, so recipients routinely get the campaign twice.`
+      ], ans:[0,1,2],
+      why:`<ul><li>(A) Correct. Nothing reads PENDING rows back, so the row is all that is left of the notification. At-least-once delivery is already broken.</li><li>(B) Correct. If the SMS provider has a slow day, every caller waits on it.</li><li>(C) Correct. Campaign sends and login codes share one path, and the campaign got there first.</li><li>(D) Wrong, and the real problem is the opposite. The fan-out is one loop on one machine. If that machine dies half-way through, the campaign stops, and nothing records where it stopped.</li></ul>` },
+
+    { id:'q48', type:'single',
+      stem:`<p>Marketing schedules an email for 09:00:00. The cron job scans once a minute. Which statement is correct?</p>`,
+      opts:[
+        `The cron job has to scan every second, or login codes will arrive late.`,
+        `The email can go out up to about a minute late, which is acceptable for this traffic. Anything that needs seconds, such as a login code, arrives as a send-now request and never passes through the cron job.`,
+        `The provider holds scheduled sends and releases them at the right time. The cron job only tidies up afterwards.`,
+        `A scheduled send is written as PENDING and sent at once, like any other.`
+      ], ans:[1],
+      why:`<p>The scheduler’s granularity is a property of the scheduled path only. A row that falls due just after a scan waits for the next one, so the worst case is about a minute, and a promotion does not mind.</p><p>(A) confuses the two paths. Latency-sensitive notifications are never scheduled, so the cron job’s period has no bearing on them. (C) and (D) contradict the design: the platform, not the provider, holds a SCHEDULED row until a scan finds it due.</p>` },
+
+    { id:'q49', type:'num', ans:3,
+      stem:`<p>A user has opted out of SMS and has set quiet hours from 22:00 to 08:00. The platform processes five notifications for this user, at these local times:</p><p>(i) 23:10, standard, email: a promotion.<br>(ii) 23:10, high priority, email: a login code.<br>(iii) 23:15, high priority, push: a fraud alert.<br>(iv) 07:30, standard, push: a daily digest.<br>(v) 14:00, standard, SMS: a delivery update.</p><p>How many of the five are recorded as SUPPRESSED?</p>`,
+      why:`<ul><li>(i) Suppressed: standard, and inside quiet hours.</li><li>(ii) Sent: quiet hours do not apply to high-priority notifications, and the user has not opted out of email.</li><li>(iii) Sent, for the same reason.</li><li>(iv) Suppressed: 07:30 is still inside the quiet window.</li><li>(v) Suppressed: the user has opted out of SMS, whatever the hour.</li></ul><p>Answer: <b>3</b>.</p><p>Each of the three is written down as SUPPRESSED with its reason, and is not dropped silently. That record is what later answers the question “why did this user not get this notification?”.</p>` }
+    ]},
+
+  { title:'Passage VII: the hardened design', fig:'nfinal',
+    text:`<p>The hardened design, shown in the figure, takes delivery off the request path. Accepting a notification becomes a single publish to a durable queue. Workers pull from the queue, check preferences, call the provider, and record SENT, FAILED or SUPPRESSED.</p><p>A message that a worker has pulled is hidden from other workers for a visibility timeout, and is deleted only when the worker has finished. If the worker dies first, the message reappears and another worker takes it.</p><p>There are two queues, each with its own workers: one for high-priority notifications and one for standard ones. The ceiling is set by the providers, not by the workers. Together the providers accept about 5,000 sends a second, and a token bucket in Redis keeps the platform under that rate. Redis also holds a deduplication cache.</p><p>Delivery is at-least-once with best-effort deduplication. The team would rather send a notification twice by accident than never send it.</p>`,
+    items:[
+    { id:'q50', type:'multi',
+      stem:`<p>The breakdown calls notification delivery a multi-step process (accept, enqueue, deliver, record), and yet it does not reach for a workflow engine. Which statements are consistent with that choice?</p>`,
+      opts:[
+        `Each step can still fail on its own, so durable progress, retries and duplicates have to be dealt with anyway, here with a queue, a visibility timeout and deduplication.`,
+        `A workflow engine would hide the parts of the problem that an interviewer most wants to see worked through.`,
+        `These are high-frequency, low-value operations, where an engine’s round trips and history writes for every step are hard to justify.`,
+        `A workflow engine has no means of retrying a failed provider call.`
+      ], ans:[0,1,2],
+      why:`<ul><li>(A) Correct. Leaving the engine out does not make the workflow problems go away. The design solves the same problems by hand.</li><li>(B) Correct. This is the breakdown’s stated reason: most interviewers will wave the engine away because it obscures the interesting parts.</li><li>(C) Correct. This is the pattern article’s own test for when not to use a workflow. A notification is one cheap send, and there are thousands of them a second.</li><li>(D) Wrong. Retrying an Activity is the most basic thing an engine does. The objection is about cost and fit, not capability.</li></ul>` },
+
+    { id:'q51', type:'single',
+      stem:`<p>A candidate proposes this for accepting a notification: write the Notification row to the database, then publish a message to the queue, then reply to the caller. Which assessment matches the breakdown?</p>`,
+      opts:[
+        `It is sound. The database row makes the notification durable, and the queue message is only an optimisation.`,
+        `It is a dual write, and the only correct repair is a two-phase commit between the database and the queue.`,
+        `It is a dual write. A crash between the two steps leaves a row that no message stands for, so the notification is never delivered. An outbox would repair that, but accepting a notification needs only one durable publish, so the simpler answer is to make the publish itself the acceptance.`,
+        `It fails because a queue cannot hold a notification durably, so the database has to remain the record of acceptance.`
+      ], ans:[2],
+      why:`<p>Two separate writes with a crash window between them is the dual write problem. Here the damage is a row with no message: the caller was told “accepted”, and no worker will ever see the notification. It is the PENDING-row failure of the first design in a new place.</p><p>The outbox pattern derives the queue from committed rows. It is the right tool when database state and a message must be produced together. Accepting a notification is not that case, because it is one publish and nothing else. So the design publishes to the durable queue and treats that as acceptance, and the worker records the outcome later.</p><p>(B) reaches for the heaviest tool available, and (D) is simply untrue of a durable queue.</p>` },
+
+    { id:'q52', type:'num', ans:250,
+      stem:`<p>To protect the high-priority tier, 1,000 of the providers’ 5,000 sends a second are set aside for it, whether or not they are used. A campaign of 1,000,000 standard notifications is enqueued at t = 0, and there are enough standard workers to use all of the standard share.</p><p>How many seconds does the campaign take to drain?</p>`,
+      why:`<p>The standard tier may use 5,000 − 1,000 = 4,000 sends a second.</p><p>1,000,000 ÷ 4,000 = <b>250</b> seconds, against 200 seconds with the whole budget.</p><p>That is the price of isolation, and a promotion can afford it. Two things follow. Adding standard workers does not shorten the 250 seconds, because the ceiling is at the providers. And separate queues alone do not isolate the tiers: if both sets of workers drew on one undivided budget, a campaign could still take every token. The budget has to be divided as well as the queue.</p>` },
+
+    { id:'q53', type:'num', ans:10,
+      stem:`<p>The SMS provider browns out. Calls that normally return in 0.2 s now hang until a 30 s timeout. The SMS path has 300 workers, each making one call at a time, with no circuit breaker and no bulkhead.</p><p>How many SMS calls a second do the 300 workers get through while the brownout lasts?</p>`,
+      why:`<p>Each call holds its worker for 30 s, so 300 workers get through 300 ÷ 30 = <b>10</b> calls a second, and those calls time out. In normal conditions the same workers handle 300 ÷ 0.2 = 1,500 calls a second.</p><p>The workers do not know that the provider is slow, so they keep calling, and the whole pool ends up waiting on a service that is mostly down. This is the case for the three defences in the next question.</p>` },
+
+    { id:'q54', type:'single', tag:'Match the lists',
+      stem:`<p>Match each mechanism with what it does.</p>`,
+      lists:{ I:[['P','Circuit breaker'],['Q','Bulkhead'],['R','Provider router'],['S','Token bucket']],
+              II:[['1','Caps how many calls to one provider can be in flight at once, so that a slow provider cannot occupy every worker'],['2','Tracks failures and timeouts for each provider and, past a threshold, makes calls fail at once instead of waiting out the timeout'],['3','Gives a channel a primary provider and a backup'],['4','Holds the platform’s send rate under what the providers accept'],['5','Hides a pulled message from other workers until it is deleted or a timer runs out']] },
+      opts:[ `P → 2, Q → 1, R → 3, S → 4`, `P → 1, Q → 2, R → 3, S → 4`, `P → 2, Q → 5, R → 3, S → 1`, `P → 2, Q → 1, R → 4, S → 3` ], ans:[0],
+      why:`<p>A circuit breaker stops calling a provider that is failing (P → 2). A bulkhead works like a semaphore on calls to one provider (Q → 1). A provider router switches to a backup where the channel has one (R → 3). The token bucket is the rate limit that keeps the platform under the providers’ ceiling (S → 4).</p><p>Entry 5 describes the queue’s visibility timeout. The two most often confused are the first two: the breaker reacts to failure it has observed, while the bulkhead limits exposure whether or not anything has failed yet.</p>` },
+
+    { id:'q55', type:'multi',
+      stem:`<p>Which statements about duplicates in this design are correct?</p>`,
+      opts:[
+        `A worker that calls the provider and dies before deleting its message causes a second send once the visibility timeout runs out, unless something recognises the notification as already sent.`,
+        `An upstream service that times out and POSTs again creates a duplicate, unless the request carries an idempotency key.`,
+        `A cron job that crashes half-way through a fan-out and runs again re-enqueues recipients that it had already handled.`,
+        `With deduplication at the worker, the design achieves exactly-once delivery to the user’s device.`
+      ], ans:[0,1,2],
+      why:`<ul><li>(A), (B) and (C) Correct. These are the three places where duplicates get in: at the worker, at the API, and at fan-out. The breakdown’s advice is to deduplicate at each point where duplicates can enter, and to be able to point at each one on the diagram.</li><li>(D) Wrong. Exactly-once stops at the provider boundary. Beyond it, the platform cannot see whether a send that timed out actually reached the phone. The honest description is at-least-once with deduplication, and the requirement itself says “best-effort”.</li></ul>` },
+
+    { id:'q56', type:'single',
+      stem:`<p>A worker handles each message in three steps. (1) Claim the notification’s key in the deduplication cache with set-if-absent. If the key was already there, delete the message and stop. (2) Call the provider. (3) Delete the message.</p><p>A worker crashes between steps 1 and 2. What follows?</p>`,
+      opts:[
+        `The message reappears and the next worker sends the notification. The key only prevents a third send.`,
+        `The notification is sent twice, which is the accepted cost of at-least-once delivery.`,
+        `Nothing is lost, because the cache entry expires together with the visibility timeout.`,
+        `The message reappears, the next worker finds the key and discards the message, and the notification is never sent. Claiming the key before the call has turned at-least-once into at-most-once.`
+      ], ans:[3],
+      why:`<p>After the crash the key says “handled”, and nothing was sent. When the message reappears, the next worker sees the key, concludes that it is looking at a duplicate, and deletes the message. The notification is gone. That is the one outcome the requirement rules out: twice is tolerable, never is not.</p><p>The order of the two writes decides which way a crash fails. If the key is recorded after the provider call, a crash in between produces a duplicate, which is the acceptable direction. If it is claimed before, a crash produces a loss. If a marker before the call is wanted, it has to mean “in progress”, and a worker that finds it must not treat it as “done”. That is the two-state key of Question 24.</p><p>(C) invents a link that the design does not have. Nothing ties the lifetime of the cache entry to the queue’s timeout.</p>` },
+
+    { id:'q57', type:'multi',
+      stem:`<p>Which of these judgement calls fit the requirements in the passage?</p>`,
+      opts:[
+        `The deduplication cache is unreachable for two minutes, while the token bucket still works. Workers carry on sending without the duplicate check and accept that a few duplicates may go out.`,
+        `Failing over to a backup provider is worth its cost for the high-priority tier, and not for standard traffic.`,
+        `During a provider brownout, standard notifications that wait in their queue break the at-least-once guarantee.`,
+        `While the deduplication cache is unreachable, the high-priority queue is paused, so that no login code can be sent twice.`
+      ], ans:[0,1],
+      why:`<ul><li>(A) Fits. The breakdown poses this as a question for staff candidates. The requirement answers it: deduplication is best-effort, and a duplicate is preferred to a missed notification, so the check fails open.</li><li>(B) Fits. A login code that arrives late is useless, so paying for a second route is justified. A promotion can wait in its queue until the provider recovers.</li><li>(C) Does not fit. Waiting is not dropping. At-least-once is about whether the notification is eventually sent, and only the high-priority tier carries a deadline.</li><li>(D) Does not fit. It gives up the 5-second promise to protect a guarantee that was only ever best-effort. A second login code is a nuisance. No login code is an outage.</li></ul>` }
+    ]}
+  ]}
+];
+
+/* ───────────────────────── diagrams ───────────────────────── */
+
+var NS='http://www.w3.org/2000/svg', seed=11;
+var COL={ink:'var(--d-ink)',mute:'var(--d-mute)',acc:'var(--d-acc)'};
+var FILL={blue:'var(--f-blue)',green:'var(--f-green)',yellow:'var(--f-yellow)',pink:'var(--f-pink)',violet:'var(--f-violet)',gray:'var(--f-gray)'};
+function S(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function hasRough(){return !!(window.rough&&window.rough.svg);}
+
+function board(host,w,h,label){
+  var svg=S('svg',{viewBox:'0 0 '+w+' '+h,role:'img','aria-label':label});
+  var gs=S('g',{},svg), gt=S('g',{},svg);
+  var rc=hasRough()?window.rough.svg(svg):null;
+  if(!rc) gs.setAttribute('filter','url(#wob)');
+  host.appendChild(svg);
+
+  function draw(d,o){
+    o=o||{};
+    var stroke=COL[o.c||'ink'], sw=o.sw||1.5;
+    if(rc){
+      var opt={roughness:o.rough==null?1:o.rough,bowing:1,strokeWidth:sw,stroke:stroke,seed:seed++};
+      if(o.fill){opt.fill=FILL[o.fill];opt.fillStyle='solid';}
+      if(o.dash){opt.strokeLineDash=[6,5];}
+      var node=rc.path(d,opt);
+      var ps=node.querySelectorAll('path');
+      for(var i=0;i<ps.length;i++){
+        var p=ps[i];
+        ['stroke','fill'].forEach(function(a){var v=p.getAttribute(a);if(v&&v.indexOf('var(')===0)p.style[a]=v;});
+        p.setAttribute('stroke-linecap','round');
+      }
+      gs.appendChild(node);
+    } else {
+      var el=S('path',{d:d,'stroke-width':sw,'stroke-linecap':'round','stroke-linejoin':'round',fill:'none'},gs);
+      el.style.stroke=stroke;
+      if(o.fill) el.style.fill=FILL[o.fill];
+      if(o.dash) el.setAttribute('stroke-dasharray','6 5');
+    }
+  }
+  function rr(x,y,w,h,r){return 'M'+(x+r)+' '+y+'H'+(x+w-r)+'Q'+(x+w)+' '+y+' '+(x+w)+' '+(y+r)+'V'+(y+h-r)+'Q'+(x+w)+' '+(y+h)+' '+(x+w-r)+' '+(y+h)+'H'+(x+r)+'Q'+x+' '+(y+h)+' '+x+' '+(y+h-r)+'V'+(y+r)+'Q'+x+' '+y+' '+(x+r)+' '+y+'Z';}
+  function text(x,y,str,o){
+    o=o||{};
+    var size=o.size||15, lines=String(str).split('\n'), lh=size*1.22;
+    var t=S('text',{'text-anchor':o.anchor||'middle','font-size':size},gt);
+    t.style.fill=COL[o.c||'ink'];
+    if(o.bold) t.setAttribute('font-weight','700');
+    var y0=y-(lines.length-1)*lh/2+size*0.34;
+    lines.forEach(function(ln,i){var ts=S('tspan',{x:x,y:(y0+i*lh).toFixed(1)},t);ts.textContent=ln;});
+  }
+  function box(x,y,w,h,label,o){
+    o=o||{};
+    draw(rr(x,y,w,h,o.r||9),{fill:o.fill,dash:o.dash,c:o.c});
+    if(label) text(x+w/2,y+h/2,label,{size:o.size,c:o.tc,bold:o.bold});
+    return {x:x,y:y,w:w,h:h,cx:x+w/2,cy:y+h/2,l:[x,y+h/2],r:[x+w,y+h/2],t:[x+w/2,y],b:[x+w/2,y+h]};
+  }
+  function line(a,b,o){draw('M'+a[0]+' '+a[1]+'L'+b[0]+' '+b[1],o);}
+  function arrow(a,b,o){
+    o=o||{};
+    var pts=[a].concat(o.via||[],[b]);
+    draw('M'+pts.map(function(p){return p[0]+' '+p[1];}).join('L'),{c:o.c,dash:o.dash});
+    var p=pts[pts.length-2], ang=Math.atan2(b[1]-p[1],b[0]-p[0]), L=11, sp=0.42;
+    var h1=[b[0]-L*Math.cos(ang-sp),b[1]-L*Math.sin(ang-sp)], h2=[b[0]-L*Math.cos(ang+sp),b[1]-L*Math.sin(ang+sp)];
+    draw('M'+h1[0].toFixed(1)+' '+h1[1].toFixed(1)+'L'+b[0]+' '+b[1]+'L'+h2[0].toFixed(1)+' '+h2[1].toFixed(1),{c:o.c,rough:0.6});
+    if(o.label){
+      var lp=o.lp||[(a[0]+b[0])/2+(o.lo?o.lo[0]:0),(a[1]+b[1])/2+(o.lo?o.lo[1]:-10)];
+      text(lp[0],lp[1],o.label,{size:o.ls||14,c:o.lc||o.c,bold:o.lb});
+    }
+  }
+  function cross(x,y,s){draw('M'+(x-s)+' '+(y-s)+'L'+(x+s)+' '+(y+s),{c:'acc',sw:2.3});draw('M'+(x+s)+' '+(y-s)+'L'+(x-s)+' '+(y+s),{c:'acc',sw:2.3});}
+  return {box:box,text:text,arrow:arrow,line:line,cross:cross};
+}
+
+var FIG={
+  hero:[710,146,'Sketch: an order is charged and reserved, then the server crashes before the label is created.',function(B){
+    var a=B.box(18,48,140,52,'Charge\npayment',{fill:'blue'});
+    var b=B.box(208,48,140,52,'Reserve\ninventory',{fill:'blue'});
+    var c=B.box(424,48,130,52,'Create\nlabel',{dash:true,c:'mute',tc:'mute'});
+    var d=B.box(596,48,100,52,'Send\nemail',{dash:true,c:'mute',tc:'mute'});
+    B.arrow(a.r,b.l); B.arrow(b.r,c.l,{c:'mute'}); B.arrow(c.r,d.l,{c:'mute'});
+    B.cross(386,74,11);
+    B.text(386,30,'server crashes here',{c:'acc',size:15});
+    B.text(386,128,'charged and reserved… now what?',{size:16});
+  }],
+  heroS:[360,206,'Sketch: an order is charged and reserved, then the server crashes before the label is created.',function(B){
+    var a=B.box(12,30,152,50,'Charge\npayment',{fill:'blue'});
+    var b=B.box(196,30,152,50,'Reserve\ninventory',{fill:'blue'});
+    var c=B.box(196,126,152,46,'Create\nlabel',{dash:true,c:'mute',tc:'mute'});
+    var d=B.box(12,126,152,46,'Send\nemail',{dash:true,c:'mute',tc:'mute'});
+    B.arrow(a.r,b.l); B.arrow(b.b,c.t,{c:'mute'}); B.arrow(c.l,d.r,{c:'mute'});
+    B.cross(272,103,10);
+    B.text(254,103,'server crashes here',{anchor:'end',c:'acc',size:14.5});
+    B.text(180,193,'charged and reserved… now what?',{size:15});
+  }],
+  q1:[760,280,'Three API servers behind a load balancer share an order state database. Gateway webhooks arrive through pub/sub. Server A has crashed after writing PAYMENT_CHARGED for order 812.',function(B){
+    var cl=B.box(14,118,84,46,'Client');
+    var lb=B.box(130,118,60,46,'LB');
+    var a=B.box(236,30,116,46,'Server A',{fill:'pink'});
+    var b=B.box(236,118,116,46,'Server B',{fill:'blue'});
+    var c=B.box(236,206,116,46,'Server C',{fill:'blue'});
+    B.box(432,24,178,70,'',{fill:'yellow'});
+    B.text(521,47,'Order state DB',{size:15});
+    B.text(521,72,'#812: PAYMENT_CHARGED',{size:12.5});
+    var ps=B.box(432,182,178,50,'Pub/Sub',{fill:'gray'});
+    var gw=B.box(654,182,96,50,'Payment\ngateway',{size:14});
+    B.arrow(cl.r,lb.l);
+    B.arrow([190,132],[236,60]); B.arrow(lb.r,b.l); B.arrow([190,150],[236,224]);
+    B.arrow([352,53],[432,58]);
+    B.arrow(gw.l,ps.r,{label:'webhook',lp:[632,170],ls:13});
+    B.arrow([432,200],[352,148]); B.arrow([432,216],[352,230]);
+    B.cross(352,30,10);
+    B.text(294,14,'crashed',{c:'acc',size:14});
+    B.text(521,118,'B and C can read this row too',{c:'mute',size:13});
+  }],
+  q3:[720,300,'A workflow worker, the Temporal Server, the history database, an activity worker and the payment service, joined by edges labelled p, q, r, s, t, u and v.',function(B){
+    B.box(24,40,156,54,'Workflow\nworker',{fill:'blue'});
+    B.box(282,40,156,54,'Temporal\nServer',{fill:'yellow'});
+    B.box(540,40,156,54,'History DB',{fill:'gray'});
+    B.box(282,200,156,54,'Activity\nworker',{fill:'blue'});
+    B.box(540,200,156,54,'Payment\nservice',{fill:'green'});
+    B.arrow([180,56],[282,56],{label:'p',lp:[231,42],ls:18,lb:true});
+    B.arrow([282,80],[180,80],{label:'t',lp:[231,98],ls:18,lb:true});
+    B.arrow([438,67],[540,67],{c:'mute',label:'records',lp:[489,54],ls:13});
+    B.arrow([335,94],[335,200],{label:'q',lp:[318,148],ls:18,lb:true});
+    B.arrow([388,200],[388,94],{label:'s',lp:[404,148],ls:18,lb:true});
+    B.arrow([438,227],[540,227],{label:'r',lp:[489,212],ls:18,lb:true});
+    B.arrow([438,92],[556,200],{dash:true,label:'v',lp:[512,138],ls:18,lb:true});
+    B.arrow([92,94],[618,254],{via:[[92,284],[618,284]],dash:true,label:'u',lp:[350,270],ls:18,lb:true});
+  }],
+  q5:[720,226,'Three executions on a progress axis with a marked point P. W1 has passed P under old code. W2 stopped before P. W3 has not started.',function(B){
+    B.text(64,22,'progress through the workflow →',{anchor:'start',c:'mute',size:13});
+    B.line([400,34],[400,190],{dash:true,c:'acc'});
+    B.text(400,208,"point P: patched('kyc-v2')",{c:'acc',size:14});
+    B.text(36,70,'W1',{bold:true});
+    B.box(64,54,470,32,'',{fill:'gray'});
+    B.text(232,70,'ran under the old code',{size:13});
+    B.text(544,70,'waiting on a later signal',{anchor:'start',size:13});
+    B.text(36,120,'W2',{bold:true});
+    B.box(64,104,186,32,'old code',{fill:'gray',size:13});
+    B.text(260,120,'waiting, not yet at P',{anchor:'start',size:13});
+    B.text(36,170,'W3',{bold:true});
+    B.box(64,154,70,32,'',{dash:true});
+    B.text(144,170,'starts after the deploy',{anchor:'start',size:13});
+  }],
+  m1:[760,232,'A durable log holds OrderPlaced, PaymentCharged and InventoryFailed. A payment worker consumes OrderPlaced and emits PaymentCharged. An inventory worker consumes PaymentCharged and emits InventoryFailed.',function(B){
+    B.text(22,16,'durable log',{anchor:'start',c:'mute',size:13});
+    B.box(14,26,732,62,'',{fill:'gray'});
+    B.box(30,38,124,38,'OrderPlaced',{fill:'yellow',size:14});
+    B.box(262,38,140,38,'PaymentCharged',{fill:'yellow',size:14});
+    B.box(516,38,140,38,'InventoryFailed',{fill:'pink',size:14});
+    B.box(130,160,160,50,'Payment worker',{fill:'blue'});
+    B.box(430,160,160,50,'Inventory worker',{fill:'blue'});
+    B.arrow([92,76],[178,160]);
+    B.arrow([242,160],[322,76]);
+    B.arrow([346,76],[478,160]);
+    B.arrow([542,160],[580,76]);
+    B.text(86,128,'consumes',{c:'mute',size:13}); B.text(318,130,'emits',{c:'mute',size:13});
+    B.text(456,106,'consumes',{c:'mute',size:13}); B.text(598,126,'emits',{c:'mute',size:13});
+  }],
+  n1:[722,212,'Forward steps T1 charge, T2 reserve, T3 create label and T4 book pickup. T4 fails. Compensations C3 void label, C2 release and C1 refund run in reverse.',function(B){
+    var t1=B.box(16,26,150,50,'T1: charge',{fill:'green'});
+    var t2=B.box(196,26,150,50,'T2: reserve',{fill:'green'});
+    var t3=B.box(376,26,150,50,'T3: create label',{fill:'green',size:14});
+    var t4=B.box(556,26,150,50,'T4: book pickup',{fill:'pink',size:14});
+    B.arrow(t1.r,t2.l); B.arrow(t2.r,t3.l); B.arrow(t3.r,t4.l);
+    B.cross(706,26,10);
+    var c1=B.box(16,146,150,46,'C1: refund',{fill:'yellow'});
+    var c2=B.box(196,146,150,46,'C2: release',{fill:'yellow'});
+    var c3=B.box(376,146,150,46,'C3: void label',{fill:'yellow'});
+    B.arrow([631,76],[526,169],{via:[[631,169]],c:'acc'});
+    B.text(604,190,'unwind',{c:'acc',size:15});
+    B.arrow(c3.l,c2.r,{c:'acc'}); B.arrow(c2.l,c1.r,{c:'acc'});
+    [t1,t2,t3].forEach(function(t){B.line([t.cx,78],[t.cx,144],{dash:true,c:'mute'});});
+  }],
+  n2:[760,206,'Recorded history shows a1, a2, a3, a4, a wait for a signal, and a5. Worker W1 covers a1 and a2 and then crashes. W2 covers a3 and a4 and is replaced during the wait. W3 finishes.',function(B){
+    B.text(18,18,'recorded history',{anchor:'start',c:'mute',size:13});
+    B.box(18,30,92,42,'a1',{fill:'green'});
+    B.box(122,30,92,42,'a2',{fill:'green'});
+    B.box(240,30,112,42,'a3',{fill:'yellow'});
+    B.box(378,30,92,42,'a4',{fill:'green'});
+    B.box(494,30,120,42,'wait for signal',{dash:true,size:13});
+    B.box(640,30,104,42,'a5',{fill:'green'});
+    B.text(296,90,'attempt 1: effect done, report lost',{c:'acc',size:12.5});
+    B.text(296,107,'attempt 2: succeeds',{size:12.5});
+    B.text(18,132,'workers',{anchor:'start',c:'mute',size:13});
+    B.box(18,142,196,30,'W1',{fill:'blue',size:14});
+    B.cross(228,157,8);
+    B.text(228,190,'crash',{c:'acc',size:13});
+    B.box(244,142,312,30,'W2',{fill:'blue',size:14});
+    B.text(570,190,'replaced in a deploy',{c:'mute',size:13});
+    B.box(584,142,160,30,'W3',{fill:'blue',size:14});
+  }],
+  n3:[720,176,'A row of log offsets 41 to 49. Offsets 41 to 43 are committed. Offsets 44 to 46 are processed but not committed. The pod is killed while processing offset 47.',function(B){
+    var fills=['green','green','green','yellow','yellow','yellow','pink',null,null];
+    for(var i=0;i<9;i++){B.box(30+i*73,60,66,44,String(41+i),{fill:fills[i]});}
+    B.text(136,40,'committed',{size:14});
+    B.text(355,40,'done, not yet committed',{size:14});
+    B.text(501,40,'in progress',{c:'acc',size:14});
+    B.cross(534,60,8);
+    B.arrow([246,150],[246,110]);
+    B.text(258,150,'last commit: next offset to read = 44',{anchor:'start',size:14});
+    B.text(501,126,'pod killed',{c:'acc',size:13});
+  }],
+  n5:[722,112,'Run 1 with its history at the limit hands only its state to Run 2, which starts with an empty history. Further runs follow.',function(B){
+    var r1=B.box(16,40,206,56,'Run 1\nhistory at the limit',{fill:'pink',size:14});
+    var r2=B.box(306,40,206,56,'Run 2\nempty history + state',{fill:'green',size:14});
+    var r3=B.box(596,40,110,56,'Run 3 …',{dash:true,size:14});
+    B.arrow(r1.r,r2.l); B.arrow(r2.r,r3.l);
+    B.text(264,22,'Continue-as-New',{size:13.5});
+  }],
+  n6:[722,178,'A timeline of four steps: write key IN_PROGRESS, call the email provider, write key COMPLETED, report success. Four crash windows are marked before and between the steps.',function(B){
+    B.arrow([12,82],[712,82],{c:'mute'});
+    B.box(72,56,126,52,'1. key =\nIN_PROGRESS',{fill:'yellow',size:13.5});
+    B.box(236,56,126,52,'2. call email\nprovider',{fill:'blue',size:13.5});
+    B.box(400,56,126,52,'3. key =\nCOMPLETED',{fill:'green',size:13.5});
+    B.box(564,56,126,52,'4. report\nsuccess',{fill:'gray',size:13.5});
+    [44,217,381,545].forEach(function(x,i){
+      B.line([x,26],[x,138],{dash:true,c:'acc'});
+      B.text(x,156,'window '+(i+1),{c:'acc',size:13});
+    });
+  }],
+  uber:[734,248,'A loop: take the next ranked driver, offer the ride, wait for a signal or a 10 second timer. Accept leads to a match. Decline or timeout loops back. An exhausted list ends with no match.',function(B){
+    var r=B.box(14,84,134,56,'Ranked drivers\nD1, D2, D3 …',{fill:'gray',size:14});
+    var o=B.box(194,84,150,56,'Offer ride to\nnext driver',{fill:'blue'});
+    var w=B.box(396,84,160,56,'Wait: signal or\n10 s timer',{fill:'yellow'});
+    B.box(612,26,108,50,'Matched',{fill:'green'});
+    B.box(612,178,108,50,'No match',{fill:'pink'});
+    B.arrow(r.r,o.l); B.arrow(o.r,w.l);
+    B.arrow([556,98],[612,58]);
+    B.text(566,62,'accept',{size:14});
+    B.arrow([476,140],[269,140],{via:[[476,203],[269,203]]});
+    B.text(372,222,'decline or timeout',{size:14});
+    B.arrow([476,203],[612,203],{c:'mute'});
+    B.text(546,190,'list exhausted',{c:'mute',size:13});
+  }],
+  pay:[722,220,'Pipeline: record attempt, call card network, record outcome, notify merchant by webhook. Status moves from created to pending, then to succeeded or failed. A timeout from the network is marked with a question mark.',function(B){
+    var a=B.box(14,22,140,54,'Record\nattempt',{fill:'yellow'});
+    var b=B.box(196,22,140,54,'Call card\nnetwork',{fill:'blue'});
+    var c=B.box(378,22,140,54,'Record\noutcome',{fill:'yellow'});
+    var d=B.box(560,22,148,54,'Notify merchant\n(webhook)',{fill:'blue',size:14});
+    B.arrow(a.r,b.l); B.arrow(b.r,c.l); B.arrow(c.r,d.l);
+    B.text(330,167,'status:',{anchor:'start',c:'mute',size:13});
+    var s1=B.box(384,150,86,34,'created',{size:14});
+    var s2=B.box(500,150,86,34,'pending',{fill:'yellow',size:14});
+    B.box(618,124,96,32,'succeeded',{fill:'green',size:13.5});
+    B.box(618,176,96,32,'failed',{fill:'pink',size:13.5});
+    B.arrow(s1.r,s2.l);
+    B.arrow([586,160],[618,142]); B.arrow([586,174],[618,190]);
+    B.arrow([264,76],[264,130],{dash:true,c:'acc'});
+    B.text(264,156,'?',{c:'acc',size:26,bold:true});
+    B.text(252,104,'timeout: no answer',{anchor:'end',c:'acc',size:14});
+  }],
+  notif:[760,180,'Pipeline: upstream service, accept and persist, queue, check preferences and render, hand to provider, record outcome. Providers are push, email and SMS.',function(B){
+    var labels=[['Upstream\nservice','gray'],['Accept +\npersist','yellow'],['Queue','gray'],['Check prefs,\nrender','blue'],['Hand to\nprovider','blue'],['Record\noutcome','yellow']];
+    var prev=null;
+    labels.forEach(function(l,i){
+      var bx=B.box(10+i*126,26,104,56,l[0],{fill:l[1],size:14});
+      if(prev) B.arrow(prev.r,bx.l);
+      prev=bx;
+    });
+    B.box(476,128,180,40,'push, email, SMS',{fill:'green',size:14});
+    B.arrow([566,82],[566,128]);
+    B.text(188,104,'now or scheduled',{c:'mute',size:13});
+  }],
+  pi:[740,222,'A PaymentIntent for 50 dollars holds the states created, authorized and captured, with canceled and refunded as other outcomes. Three transactions hang off it. One of them sends an authorization to the external card network, and the answer may be lost.',function(B){
+    B.box(14,16,300,192,'',{fill:'gray'});
+    B.text(164,36,'PaymentIntent: $50',{size:15,bold:true});
+    var c=B.box(28,58,78,32,'created',{size:13});
+    var a=B.box(124,58,90,32,'authorized',{size:13});
+    var p=B.box(232,58,70,32,'captured',{size:13,fill:'green'});
+    B.arrow(c.r,a.l); B.arrow(a.r,p.l);
+    var x=B.box(124,118,90,32,'canceled',{size:13,dash:true});
+    var r=B.box(232,118,70,32,'refunded',{size:13,dash:true});
+    B.arrow(a.b,x.t,{c:'mute'}); B.arrow(p.b,r.t,{c:'mute'});
+    B.text(164,182,'enforces idempotency for retries',{size:13,c:'mute'});
+    B.text(346,22,'Transactions',{anchor:'start',c:'mute',size:13});
+    B.box(346,38,180,40,'Tx 1: charge, declined',{fill:'pink',size:13});
+    B.box(346,96,180,40,'Tx 2: charge, pending',{fill:'yellow',size:13});
+    B.box(346,154,180,40,'Tx 3: …',{dash:true,size:13});
+    B.line([314,58],[346,58]); B.line([314,116],[346,116]); B.line([314,174],[346,174],{c:'mute'});
+    B.box(600,86,126,60,'Card network\n(external)',{fill:'blue',size:14});
+    B.arrow([526,108],[600,108]);
+    B.text(563,94,'authorize',{size:12.5});
+    B.arrow([600,128],[526,128],{dash:true,c:'acc'});
+    B.text(563,148,'answer lost?',{c:'acc',size:12.5});
+  }],
+  cdc:[760,250,'The Transaction Service writes to the database. Change data capture publishes changes to a Kafka event stream keyed by payment intent. The stream feeds an archive, a reconciliation worker that compares records with the card network and writes corrections to the database, and a webhook service that posts signed events to the merchant.',function(B){
+    var ts=B.box(14,24,124,56,'Transaction\nService',{fill:'blue',size:14});
+    var db=B.box(176,24,110,56,'Database',{fill:'yellow'});
+    var cd=B.box(324,24,70,56,'CDC',{fill:'gray'});
+    var k=B.box(432,24,178,56,'Kafka event stream\nkey: payment_intent_id',{fill:'violet',size:13});
+    var ar=B.box(652,24,98,56,'Archive',{fill:'gray',size:14});
+    B.arrow(ts.r,db.l); B.arrow(db.r,cd.l); B.arrow(cd.r,k.l); B.arrow(k.r,ar.l);
+    var cn=B.box(14,178,104,54,'Card\nnetwork',{dash:true,size:14});
+    var rw=B.box(176,178,150,54,'Reconciliation\nworker',{fill:'green',size:14});
+    var wh=B.box(444,178,130,54,'Webhook\nservice',{fill:'blue',size:14});
+    var m=B.box(658,178,92,54,'Merchant',{size:14});
+    B.arrow([476,80],[306,178]);
+    B.arrow([536,80],[516,178]);
+    B.arrow(rw.l,cn.r);
+    B.text(147,190,'compare',{size:12});
+    B.arrow([228,178],[232,80],{dash:true,c:'mute'});
+    B.text(218,132,'corrections',{anchor:'end',c:'mute',size:12.5});
+    B.arrow(wh.r,m.l);
+    B.text(616,190,'signed POST',{size:12});
+  }],
+  nhld:[740,222,'An upstream service calls the API gateway, which calls the Notification Service. The service reads and writes the notifications database and calls the providers directly: Twilio for SMS, SMTP for email, APNs and FCM for push. A scheduler cron job scans the database every minute and pushes due sends through the service.',function(B){
+    var u=B.box(14,40,110,54,'Upstream\nservice',{fill:'gray',size:14});
+    var g=B.box(160,40,90,54,'API\nGateway',{size:14});
+    var s=B.box(288,40,140,54,'Notification\nService',{fill:'blue'});
+    B.arrow(u.r,g.l); B.arrow(g.r,s.l);
+    B.box(566,12,160,36,'Twilio (SMS)',{fill:'green',size:13.5});
+    B.box(566,58,160,36,'SMTP (email)',{fill:'green',size:13.5});
+    B.box(566,104,160,36,'APNs / FCM (push)',{fill:'green',size:13.5});
+    B.arrow([428,56],[566,30]); B.arrow([428,67],[566,76]); B.arrow([428,78],[566,120]);
+    var d=B.box(288,158,140,52,'Notifications DB',{fill:'yellow',size:14});
+    B.arrow([358,94],[358,158]);
+    var c=B.box(70,158,130,52,'Scheduler\ncron job',{fill:'violet',size:14});
+    B.arrow(c.r,d.l);
+    B.text(244,174,'scans every',{c:'mute',size:12}); B.text(244,198,'minute',{c:'mute',size:12});
+    B.arrow([150,158],[300,94],{c:'mute'});
+    B.text(196,116,'due sends',{c:'mute',size:12.5});
+  }],
+  nfinal:[760,234,'An upstream service calls the Notification Service, which publishes to one of two queues: high priority or standard. Each queue has its own workers. The workers use Redis for a token bucket and a deduplication cache, and call the providers, which accept about 5,000 sends a second.',function(B){
+    var u=B.box(10,90,104,54,'Upstream\nservice',{fill:'gray',size:14});
+    var s=B.box(146,90,128,54,'Notification\nService',{fill:'blue',size:14});
+    B.arrow(u.r,s.l);
+    var qh=B.box(318,22,156,46,'High priority queue',{fill:'pink',size:13.5});
+    var qs=B.box(318,166,156,46,'Standard queue',{fill:'gray',size:13.5});
+    B.arrow([274,106],[318,52]); B.arrow([274,128],[318,182]);
+    var wh=B.box(512,22,92,46,'Workers',{fill:'blue',size:14});
+    var ws=B.box(512,166,92,46,'Workers',{fill:'blue',size:14});
+    B.arrow(qh.r,wh.l); B.arrow(qs.r,ws.l);
+    B.box(484,94,140,48,'Redis: token bucket,\ndedup cache',{fill:'yellow',size:12.5});
+    B.line([558,68],[558,94],{dash:true,c:'mute'}); B.line([558,166],[558,142],{dash:true,c:'mute'});
+    B.box(658,90,94,56,'Providers\n5,000 / s',{fill:'green',size:13.5});
+    B.arrow([604,48],[658,100]); B.arrow([604,186],[658,136]);
+  }]
+};
+
+function drawFigs(root){
+  var hosts=root.querySelectorAll('.fig[data-fig]');
+  for(var i=0;i<hosts.length;i++){
+    var h=hosts[i], f=FIG[h.getAttribute('data-fig')];
+    if(!f||h.firstChild) continue;
+    try{ f[3](board(h,f[0],f[1],f[2])); }catch(e){ h.textContent='Diagram could not be drawn.'; }
+  }
+}
+
+/* ───────────────────────── app ───────────────────────── */
+
+var KEY='msp-jee-paper-v1';
+var MARKS={single:{full:3,neg:-1},multi:{full:4,neg:-2},num:{full:4,neg:0}};
+var L=['A','B','C','D'];
+var TAG={single:'One correct option',multi:'One or more correct options',num:'Whole number'};
+var paper=document.getElementById('paper'), omr=document.getElementById('omr');
+var QS=[], byId={}, st={};
+
+(function index(){
+  var n=0;
+  DATA.forEach(function(sec){
+    var push=function(q){q.n=++n;q.sec=sec.id;QS.push(q);byId[q.id]=q;};
+    if(sec.items) sec.items.forEach(push);
+    if(sec.passages) sec.passages.forEach(function(p){p.items.forEach(push);});
+  });
+})();
+var MAX=QS.reduce(function(s,q){return s+MARKS[q.type].full;},0);
+
+function load(){try{var raw=window.localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==='object')return o;}}catch(e){}return {};}
+function save(){try{window.localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function secOf(q){for(var i=0;i<DATA.length;i++)if(DATA[i].id===q.sec)return DATA[i];}
+function secQs(sec){return QS.filter(function(q){return q.sec===sec.id;});}
+function secMax(sec){return secQs(sec).reduce(function(s,q){return s+MARKS[q.type].full;},0);}
+
+function qHTML(q,showTag){
+  var h='<article class="q" id="'+q.id+'"><div class="q-n">'+q.n+'.<span class="mark" aria-hidden="true"></span></div><div class="q-b">';
+  if(showTag) h+='<p class="q-tag">'+(q.tag||TAG[q.type])+'</p>';
+  h+='<div class="stem">'+q.stem+'</div>';
+  if(q.code) h+='<pre><code>'+esc(q.code)+'</code></pre>';
+  if(q.fig) h+='<div class="fig" data-fig="'+q.fig+'"></div>';
+  if(q.lists){
+    h+='<div class="lists"><div><h4>List I</h4>'+q.lists.I.map(function(r){return '<p>('+r[0]+')&nbsp; '+r[1]+'</p>';}).join('')+'</div><div><h4>List II</h4>'+q.lists.II.map(function(r){return '<p>('+r[0]+')&nbsp; '+r[1]+'</p>';}).join('')+'</div></div>';
+  }
+  if(q.type==='num'){
+    h+='<div class="num"><label for="'+q.id+'-in">Your answer</label><input id="'+q.id+'-in" type="text" inputmode="numeric" autocomplete="off" maxlength="9"></div>';
+  } else {
+    h+='<fieldset class="opts"><legend class="vh">Options for question '+q.n+'</legend>';
+    q.opts.forEach(function(o,i){
+      h+='<label class="opt"><input type="'+(q.type==='multi'?'checkbox':'radio')+'" name="'+q.id+'" value="'+i+'"><span class="bub">'+L[i]+'</span><span class="otext">'+o+'</span><span class="flag"></span></label>';
+    });
+    h+='</fieldset>';
+  }
+  h+='<div class="acts"><button class="btn" data-act="check" disabled>Check answer</button><button class="btn ghost" data-act="show">Show solution</button></div><div class="sol" hidden></div></div></article>';
+  return h;
+}
+
+function build(){
+  var h='';
+  h+='<section class="cover"><h1>Multi-step Processes</h1>'+
+     '<p class="sub">A practice paper in the JEE Advanced pattern on sagas, choreography, workflow engines and durable execution.</p>'+
+     '<div class="fig" data-fig="'+(window.innerWidth<600?'heroS':'hero')+'"></div>'+
+     '<div class="facts"><div><b>'+QS.length+'</b><span>questions</span></div><div><b>'+MAX+'</b><span>maximum marks</span></div><div><b>120</b><span>minutes suggested</span></div></div>'+
+     '<ul class="notes">'+
+     '<li>Mark your answer, then choose Check answer. The question locks and its solution opens.</li>'+
+     '<li>Wrong answers cost marks in most sections. Each section states its own scheme.</li>'+
+     '<li>Show solution opens the working without an attempt and scores 0.</li>'+
+     '<li>Sections 1 to 5 are set from the Multi-step Processes article. Section 6 applies it to one short scenario each from the Uber, Payment System and Notification System breakdowns. Sections 7 and 8 work through the Payment System and Notification System breakdowns in depth.</li>'+
+     '<li>Your answers are kept in this browser until you choose Start over.</li>'+
+     '</ul></section>';
+  DATA.forEach(function(sec){
+    h+='<section class="sec" id="'+sec.id+'"><div class="sec-h"><h2>'+sec.name+' <span>(maximum marks: '+secMax(sec)+')</span></h2></div><ul class="sec-i">'+sec.rules.map(function(r){return '<li>'+r+'</li>';}).join('')+'</ul>';
+    if(sec.items) sec.items.forEach(function(q){h+=qHTML(q,false);});
+    if(sec.passages) sec.passages.forEach(function(p){
+      h+='<div class="passage"><h3>'+p.title+'</h3>'+p.text+(p.fig?'<div class="fig" data-fig="'+p.fig+'"></div>':'')+'</div>';
+      p.items.forEach(function(q){h+=qHTML(q,true);});
+    });
+    h+='</section>';
+  });
+  h+='<section class="result" id="result"><h2>Marks by section</h2><p id="resultLine"></p><div class="tw"><table><thead><tr><th>Section</th><th class="r">Checked</th><th class="r">Marks</th></tr></thead><tbody id="resultBody"></tbody><tfoot><tr><td>Total</td><td class="r" id="rDone"></td><td class="r" id="rMarks"></td></tr></tfoot></table></div></section>';
+  paper.innerHTML=h;
+
+  var o='<h2>Answer sheet</h2><p class="hint">Select a row to go to that question.</p><div class="omr-grid">';
+  DATA.forEach(function(sec){
+    o+='<div class="omr-sec">'+sec.name+'</div>';
+    secQs(sec).forEach(function(q){
+      o+='<button class="omr-row" data-q="'+q.id+'" aria-label="Go to question '+q.n+'"><span class="n">'+q.n+'</span>'+
+         (q.type==='num'?'<span><span class="numbox"></span></span>':'<span class="bubs"><i></i><i></i><i></i><i></i></span>')+
+         '<span class="st"></span></button>';
+    });
+  });
+  o+='</div>';
+  omr.innerHTML=o;
+
+  drawFigs(paper);
+  QS.forEach(function(q){
+    var s=st[q.id]; if(!s) return;
+    var el=document.getElementById(q.id);
+    if(q.type==='num'){ el.querySelector('.num input').value=s.val||''; }
+    else { (s.sel||[]).forEach(function(i){var inp=el.querySelector('input[value="'+i+'"]'); if(inp) inp.checked=true;}); }
+    if(s.res) lock(q,el,s); else el.querySelector('[data-act=check]').disabled=!hasAnswer(q,s);
+    row(q);
+  });
+  totals();
+}
+
+function hasAnswer(q,s){return q.type==='num'?/\S/.test(s.val||''):(s.sel||[]).length>0;}
+function parseNum(v){var t=String(v).trim().replace(/\u2212/g,'-').replace(/,/g,'');if(!/^-?\d+(\.\d+)?$/.test(t))return NaN;return Number(t);}
+
+function grade(q,s){
+  var m=MARKS[q.type];
+  if(q.type==='num'){ return parseNum(s.val)===q.ans?{res:'right',pts:m.full}:{res:'wrong',pts:0}; }
+  var sel=(s.sel||[]).slice().sort(), ans=q.ans.slice().sort();
+  var wrongPick=sel.some(function(i){return ans.indexOf(i)<0;});
+  if(!wrongPick&&sel.length===ans.length) return {res:'right',pts:m.full};
+  if(q.type==='multi'&&!wrongPick&&sel.length>0) return {res:'partial',pts:sel.length};
+  return {res:'wrong',pts:m.neg};
+}
+
+function ansText(q){return q.type==='num'?String(q.ans):q.ans.map(function(i){return '('+L[i]+')';}).join(', ');}
+function ptsText(p){return p>0?'+'+p:(p<0?'\u2212'+Math.abs(p):'0');}
+
+function drawMark(el,txt){
+  el.textContent='';
+  var svg=S('svg',{viewBox:'0 0 60 44'},el);
+  if(hasRough()){
+    var n=window.rough.svg(svg).ellipse(30,22,52,34,{stroke:'currentColor',strokeWidth:1.7,roughness:1.5,seed:5+txt.length*3});
+    svg.appendChild(n);
+  } else { S('ellipse',{cx:30,cy:22,rx:26,ry:17,fill:'none',stroke:'currentColor','stroke-width':1.7},svg); }
+  var t=S('text',{x:30,y:29,'text-anchor':'middle'},svg); t.textContent=txt;
+}
+
+function lock(q,el,s){
+  el.classList.add('locked'); el.setAttribute('data-res',s.res);
+  var inputs=el.querySelectorAll('input'); for(var i=0;i<inputs.length;i++) inputs[i].disabled=true;
+  if(q.type!=='num'){
+    var labels=el.querySelectorAll('.opt');
+    for(var j=0;j<labels.length;j++){
+      var isAns=q.ans.indexOf(j)>=0, picked=(s.sel||[]).indexOf(j)>=0, flag=labels[j].querySelector('.flag');
+      if(isAns){labels[j].classList.add('is-ans');flag.textContent=picked?'Correct, and you chose it':'Correct option';}
+      else if(picked){labels[j].classList.add('is-bad');flag.textContent='You chose this';}
+    }
+  }
+  el.querySelector('.acts').hidden=true;
+  var word={right:'Correct.',partial:'Partly correct.',wrong:'Incorrect.',shown:'Not attempted.'}[s.res];
+  var sol=el.querySelector('.sol');
+  sol.setAttribute('data-res',s.res);
+  sol.innerHTML='<p class="verdict"><b>'+word+'</b> Answer: '+ansText(q)+'. Marks: '+ptsText(s.pts)+'.</p>'+q.why;
+  sol.hidden=false;
+  drawMark(el.querySelector('.mark'),ptsText(s.pts));
+}
+
+function row(q){
+  var r=omr.querySelector('.omr-row[data-q="'+q.id+'"]'); if(!r) return;
+  var s=st[q.id]||{};
+  if(q.type==='num'){ r.querySelector('.numbox').textContent=s.val||''; }
+  else { var b=r.querySelectorAll('.bubs i'); for(var i=0;i<b.length;i++) b[i].className=(s.sel||[]).indexOf(i)>=0?'on':''; }
+  if(s.res){ r.setAttribute('data-res',s.res); r.querySelector('.st').textContent={right:'\u2713',partial:'\u00bd',wrong:'\u2717',shown:'\u2013'}[s.res]; }
+  else { r.removeAttribute('data-res'); r.querySelector('.st').textContent=''; }
+}
+
+function totals(){
+  var score=0, done=0, rows='';
+  DATA.forEach(function(sec){
+    var qs=secQs(sec), d=0, p=0;
+    qs.forEach(function(q){var s=st[q.id]; if(s&&s.res){d++;p+=s.pts;}});
+    score+=p; done+=d;
+    rows+='<tr><td>'+sec.name+'</td><td class="r">'+d+' of '+qs.length+'</td><td class="r">'+ptsText(p).replace('+','')+' / '+secMax(sec)+'</td></tr>';
+  });
+  document.getElementById('score').textContent=ptsText(score).replace('+','');
+  document.getElementById('max').textContent=MAX;
+  document.getElementById('done').textContent=done;
+  document.getElementById('total').textContent=QS.length;
+  document.getElementById('resultBody').innerHTML=rows;
+  document.getElementById('rDone').textContent=done+' of '+QS.length;
+  document.getElementById('rMarks').textContent=ptsText(score).replace('+','')+' / '+MAX;
+  document.getElementById('resultLine').textContent=done===0?'Nothing checked yet. Marks appear here as you check answers.':(done<QS.length?(QS.length-done)+' questions still to check.':'All questions checked.');
+}
+
+function read(q,el){
+  var s=st[q.id]||(st[q.id]={sel:[],val:'',res:null,pts:0});
+  if(s.res) return s;
+  if(q.type==='num'){ s.val=el.querySelector('.num input').value.trim(); }
+  else { s.sel=[]; var c=el.querySelectorAll('input:checked'); for(var i=0;i<c.length;i++) s.sel.push(Number(c[i].value)); }
+  el.querySelector('[data-act=check]').disabled=!hasAnswer(q,s);
+  save(); row(q);
+  return s;
+}
+
+function finish(q,el,shown){
+  var s=read(q,el); if(s.res) return;
+  if(shown){ s.res='shown'; s.pts=0; }
+  else { if(!hasAnswer(q,s)) return; var g=grade(q,s); s.res=g.res; s.pts=g.pts; }
+  save(); lock(q,el,s); row(q); totals();
+}
+
+function onEdit(e){
+  var el=e.target.closest&&e.target.closest('.q'); if(!el||!byId[el.id]) return;
+  if(e.target.tagName==='INPUT') read(byId[el.id],el);
+}
+paper.addEventListener('change',onEdit);
+paper.addEventListener('input',onEdit);
+paper.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.matches&&e.target.matches('.num input')){ var el=e.target.closest('.q'); finish(byId[el.id],el,false); }
+});
+paper.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('button[data-act]'); if(!b) return;
+  var el=b.closest('.q'); finish(byId[el.id],el,b.getAttribute('data-act')==='show');
+});
+
+var toggle=document.getElementById('omrToggle');
+function setSheet(open){omr.classList.toggle('open',open);toggle.setAttribute('aria-expanded',open?'true':'false');}
+toggle.addEventListener('click',function(){setSheet(!omr.classList.contains('open'));});
+omr.addEventListener('click',function(e){
+  var r=e.target.closest&&e.target.closest('.omr-row'); if(!r) return;
+  setSheet(false);
+  var el=document.getElementById(r.getAttribute('data-q'));
+  var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({behavior:calm?'auto':'smooth',block:'start'});
+});
+
+var reset=document.getElementById('reset'), armed=null;
+reset.addEventListener('click',function(){
+  if(!armed){
+    reset.textContent='Clear all answers?';
+    armed=setTimeout(function(){armed=null;reset.textContent='Start over';},4000);
+    return;
+  }
+  clearTimeout(armed); armed=null; reset.textContent='Start over';
+  st={}; save(); build(); window.scrollTo(0,0);
+});
+
+function barH(){document.documentElement.style.setProperty('--barh',document.getElementById('bar').offsetHeight+'px');}
+window.addEventListener('resize',barH);
+
+st=load();
+build();
+barH();
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(barH);}
+})();
+</script>
+</body>
+</html>

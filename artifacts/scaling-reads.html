@@ -1,0 +1,1377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scaling Reads: JEE-style practice paper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ffffff; --ink:#1b2130; --ink-2:#4d5568; --rule:#d9dce4; --rule-2:#eef0f4;
+  --omr:#b8337e; --omr-tint:#fcf0f6;
+  --ok:#1d7a4b; --ok-tint:#e9f6ef; --bad:#c92a2a; --bad-tint:#fdeeee; --part:#a35d00; --part-tint:#fdf4e4;
+  --pencil:#3a3a3a; --sel:#f3f4f8;
+  --d-stroke:#1e1e1e; --d-text:#1e1e1e; --d-muted:#5f6672; --d-redink:#e03131; --d-greenink:#2b8a3e; --d-blueink:#1971c2;
+  --d-blue:#a5d8ff; --d-green:#b2f2bb; --d-yellow:#ffec99; --d-red:#ffc9c9; --d-violet:#d0bfff; --d-gray:#dee2e6; --d-orange:#ffd8a8;
+  --serif:"Source Serif 4","Source Serif Pro",Georgia,"Times New Roman",serif;
+  --hand:"Kalam","Segoe Print","Bradley Hand","Comic Neue",cursive;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15171c; --ink:#e7e9ef; --ink-2:#a6acbb; --rule:#2d313b; --rule-2:#21242b;
+    --omr:#e98fc2; --omr-tint:#2a1c26;
+    --ok:#62d394; --ok-tint:#14291e; --bad:#ff8077; --bad-tint:#2f1818; --part:#f1b65c; --part-tint:#2d2414;
+    --pencil:#d7d7d7; --sel:#1d2028;
+    --d-stroke:#e4e4e4; --d-text:#ececec; --d-muted:#9ca3b0; --d-redink:#ff8787; --d-greenink:#69db7c; --d-blueink:#74c0fc;
+    --d-blue:#1d3d5f; --d-green:#1e4a2d; --d-yellow:#4d441a; --d-red:#562828; --d-violet:#3b2e64; --d-gray:#2b2f37; --d-orange:#553b1d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15171c; --ink:#e7e9ef; --ink-2:#a6acbb; --rule:#2d313b; --rule-2:#21242b;
+  --omr:#e98fc2; --omr-tint:#2a1c26;
+  --ok:#62d394; --ok-tint:#14291e; --bad:#ff8077; --bad-tint:#2f1818; --part:#f1b65c; --part-tint:#2d2414;
+  --pencil:#d7d7d7; --sel:#1d2028;
+  --d-stroke:#e4e4e4; --d-text:#ececec; --d-muted:#9ca3b0; --d-redink:#ff8787; --d-greenink:#69db7c; --d-blueink:#74c0fc;
+  --d-blue:#1d3d5f; --d-green:#1e4a2d; --d-yellow:#4d441a; --d-red:#562828; --d-violet:#3b2e64; --d-gray:#2b2f37; --d-orange:#553b1d;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px);-webkit-text-size-adjust:100%;height:auto}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.6;font-optical-sizing:auto}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--paper)}
+a{color:inherit}
+code{font-family:var(--mono);font-size:.84em;background:var(--rule-2);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bx{color:var(--ink-2);font-style:italic;text-decoration:underline dotted;text-underline-offset:3px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;padding:10px 20px}
+.bar-t{font-weight:700;flex:1;font-size:17px}
+.bar-m{font-family:var(--hand);color:var(--bad);font-size:22px;line-height:1}
+
+.layout{max-width:1140px;margin:0 auto;padding:0 20px 96px;display:grid;grid-template-columns:minmax(0,1fr);gap:56px}
+@media (min-width:1000px){
+  .layout{grid-template-columns:minmax(0,720px) 280px;justify-content:center}
+  .bar,.sheet-close,.scrim{display:none!important}
+}
+main{min-width:0}
+
+.cover{padding:52px 0 26px;border-bottom:2px solid var(--ink)}
+.cover h1{font-size:clamp(42px,8vw,66px);line-height:1.02;margin:0 0 14px;font-weight:700;letter-spacing:-.015em}
+.cover .sub{font-size:20px;color:var(--ink-2);max-width:56ch;margin:0}
+.cover .meta{margin:20px 0 0;font-size:16px;display:flex;flex-wrap:wrap;gap:6px 28px}
+.cover .meta b{font-weight:600}
+
+.instr{margin:28px 0 0;border:1.5px solid var(--omr);border-radius:4px;padding:18px 22px 16px;background:var(--omr-tint)}
+.instr h2{font-size:18px;margin:0 0 6px;color:var(--omr)}
+.instr ol{margin:0 0 10px;padding-left:22px}
+.instr li{margin:5px 0;font-size:16px;line-height:1.5}
+.instr p{font-size:15px;margin:8px 0 0;color:var(--ink-2);line-height:1.5}
+
+.sec{margin-top:60px}
+.sec > h2{font-size:clamp(25px,4vw,30px);margin:0;padding-bottom:8px;border-bottom:1px solid var(--rule);line-height:1.2}
+.sec-rule{color:var(--ink-2);font-size:16px;margin:10px 0 0;font-style:italic;line-height:1.5}
+
+.passage{margin:30px 0 0;padding:18px 20px;border:1px solid var(--rule);border-radius:6px;background:var(--sel)}
+.passage h3{margin:0 0 6px;font-size:19px}
+.passage p{margin:0 0 10px;font-size:17px}
+
+.q{padding:30px 0 28px;border-bottom:1px dashed var(--rule)}
+.q-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.q-num{font-weight:700;font-size:18px}
+.q-topic{font-size:15px;color:var(--ink-2);font-style:italic}
+.q-stem p{margin:0 0 10px}
+.ar{margin:0 0 8px}
+.ar b{font-weight:600}
+
+.mm{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;margin:10px 0 4px;padding:12px 14px;border:1px solid var(--rule);border-radius:6px}
+@media (max-width:640px){.mm{grid-template-columns:1fr}}
+.mm h4{margin:0 0 4px;font-size:15px;color:var(--ink-2);font-weight:600}
+.mm ul{margin:0;padding:0;list-style:none}
+.mm li{display:grid;grid-template-columns:26px 1fr;gap:4px;margin:6px 0;font-size:16.5px;line-height:1.45}
+.mm li b{color:var(--omr);font-weight:600}
+
+.opts{display:grid;gap:4px;margin:14px 0 0}
+.opt{position:relative;display:grid;grid-template-columns:34px 1fr;align-items:start;gap:6px;padding:8px 10px;border-radius:6px;border:1.5px solid transparent;cursor:pointer;line-height:1.5}
+.opt:hover{background:var(--sel)}
+.opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.bub{display:block;width:28px;height:28px}
+.opt-t{min-width:0}
+.q-stem,.sol,.passage{overflow-wrap:break-word}
+.bub svg{width:28px;height:28px;display:block;overflow:visible}
+.opt input:focus-visible + .bub{outline:2.5px solid var(--omr);outline-offset:2px;border-radius:50%}
+.q.locked .opt{cursor:default}
+.q.locked .opt:hover{background:transparent}
+.opt.is-key{border-color:var(--ok);background:var(--ok-tint)}
+.opt.is-wrong{border-color:var(--bad);background:var(--bad-tint)}
+body.revise .q:not(.locked) .opt[data-key]{border-color:var(--ok);border-style:dashed}
+
+.int{display:flex;gap:14px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.int label{font-size:16px;color:var(--ink-2)}
+.int input{font:inherit;font-size:24px;width:132px;padding:6px 12px;border:1.5px solid var(--omr);border-radius:4px;background:var(--paper);color:var(--ink);letter-spacing:.06em}
+.int input:focus-visible{outline:2.5px solid var(--omr);outline-offset:2px}
+.int.is-ok input{border-color:var(--ok)}
+.int.is-bad input{border-color:var(--bad)}
+
+.q-act{display:flex;gap:18px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.btn{font:inherit;font-size:16px;font-weight:600;padding:8px 18px;border-radius:4px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;line-height:1.3}
+.btn:hover{opacity:.88}
+.btn:focus-visible,.btn-link:focus-visible,.pal button:focus-visible{outline:2.5px solid var(--omr);outline-offset:2px}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn-link{font:inherit;font-size:16px;background:none;border:0;padding:4px 0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.q.locked .btn-check,.q.locked .btn-sol{display:none}
+.note{font-size:15px;color:var(--bad)}
+
+.verdict{font-family:var(--hand);font-size:24px;line-height:1.2;margin-top:10px}
+.verdict:empty{display:none}
+.verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)} .verdict.part{color:var(--part)} .verdict.seen{color:var(--ink-2)}
+
+.sol{display:none;margin-top:14px;padding:14px 18px;border-left:3px solid var(--omr);background:var(--sel);border-radius:0 6px 6px 0;font-size:17px;line-height:1.6}
+.q.open .sol, body.revise .sol{display:block}
+.sol p{margin:0 0 9px}
+.sol .sol-key{font-weight:700}
+.sol .src{margin:10px 0 0;font-size:14px;color:var(--ink-2);font-style:italic}
+
+.dg{margin:16px 0 8px}
+.dg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);border-radius:8px;background:var(--paper)}
+.dg svg{display:block;width:100%;min-width:560px;height:auto}
+.dg text{font-family:var(--hand)}
+.dg figcaption{font-size:15px;color:var(--ink-2);margin-top:6px;font-style:italic;line-height:1.45}
+
+#sheet{position:sticky;top:calc(env(safe-area-inset-top,0px) + 22px);align-self:start;margin-top:52px;max-height:calc(100vh - 44px);overflow:auto;padding:18px 18px 20px;border:1.5px solid var(--omr);border-radius:6px;background:var(--paper)}
+.sheet-top{display:flex;align-items:baseline;justify-content:space-between}
+#sheet h2{font-size:18px;margin:0;color:var(--omr)}
+.marks{font-family:var(--hand);color:var(--bad);font-size:46px;line-height:1;margin:12px 0 2px}
+.marks .of{font-size:24px;margin-left:6px}
+.att{font-size:15px;color:var(--ink-2);margin:0 0 6px}
+.pal-sec{margin:14px 0 6px;font-size:14px;color:var(--ink-2)}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
+.pal button{font:inherit;font-size:13.5px;font-weight:600;width:34px;height:34px;border-radius:50%;border:1.4px solid var(--omr);background:transparent;color:var(--omr);cursor:pointer;padding:0;line-height:1}
+.pal button.ans{background:var(--pencil);border-color:var(--pencil);color:var(--paper)}
+.pal button.ok{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+.pal button.bad{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.pal button.part{background:var(--part);border-color:var(--part);color:var(--paper)}
+.pal button.seen{border-style:dashed;color:var(--ink-2);border-color:var(--ink-2)}
+.legend{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:5px;font-size:14px;color:var(--ink-2)}
+.legend li{display:flex;align-items:center;gap:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:50%;border:1.4px solid var(--omr)}
+.legend i.ans{background:var(--pencil);border-color:var(--pencil)} .legend i.ok{background:var(--ok);border-color:var(--ok)} .legend i.part{background:var(--part);border-color:var(--part)} .legend i.bad{background:var(--bad);border-color:var(--bad)} .legend i.seen{border-style:dashed;border-color:var(--ink-2)}
+.sheet-act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:18px}
+
+@media (max-width:999px){
+  #sheet{position:fixed;left:0;right:0;bottom:0;top:auto;margin:0;max-height:82vh;border-radius:14px 14px 0 0;border-width:1.5px 0 0;transform:translateY(105%);transition:transform .25s ease;z-index:35;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  #sheet.open{transform:none}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.show{opacity:1;pointer-events:auto}
+}
+@media (prefers-reduced-motion: reduce){#sheet,.scrim{transition:none}}
+
+.foot{margin-top:56px;padding-top:18px;border-top:2px solid var(--ink);font-size:15px;color:var(--ink-2);line-height:1.55}
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="bar-t">Scaling Reads</span>
+  <span class="bar-m"><span id="mk2">0</span> / <span class="mx">0</span></span>
+  <button type="button" class="btn" id="openSheet">Answer sheet</button>
+</div>
+<div class="layout">
+  <main>
+    <header class="cover">
+      <h1>Scaling Reads</h1>
+      <p class="sub">A practice paper in the JEE Advanced format, built from the Hello Interview pattern and its thirteen problem breakdowns.</p>
+      <p class="meta"><span><b>Maximum marks:</b> <span class="mx">0</span></span><span><b>Questions:</b> <span id="qcount">0</span></span><span><b>Time:</b> untimed</span></p>
+    </header>
+    <section class="instr" aria-labelledby="instr-h">
+      <h2 id="instr-h">Instructions</h2>
+      <ol id="instr-list"></ol>
+      <p>Fill a bubble, then press Check answer. Show solution reveals the working; if you haven’t answered yet, the question is closed with no marks. Your sheet is saved in this browser.</p>
+      <p>Notes marked <span class="bx">beyond the article</span> add context that neither the pattern article nor the breakdowns state.</p>
+    </section>
+    <div id="sections"></div>
+    <footer class="foot">
+      Sources: Hello Interview’s Scaling Reads pattern and the problem breakdowns for Ticketmaster, Bitly, Instagram, FB News Feed, YouTube Top K, Yelp, Distributed Cache, Rate Limiter, YouTube, FB Post Search, Local Delivery Service, News Aggregator and Metrics Monitoring. Diagrams are drawn with rough.js, the sketch library behind Excalidraw.
+    </footer>
+  </main>
+  <aside id="sheet" aria-label="Answer sheet">
+    <div class="sheet-top"><h2>Answer sheet</h2><button type="button" class="btn-link sheet-close" id="closeSheet">Close</button></div>
+    <p class="marks"><span id="mk">0</span><span class="of">/ <span class="mx">0</span></span></p>
+    <p class="att" id="att"></p>
+    <div id="pal"></div>
+    <ul class="legend">
+      <li><i></i>Not answered</li>
+      <li><i class="ans"></i>Filled, not checked</li>
+      <li><i class="ok"></i>Correct</li>
+      <li><i class="part"></i>Partly correct</li>
+      <li><i class="bad"></i>Wrong</li>
+      <li><i class="seen"></i>Solution viewed</li>
+    </ul>
+    <div class="sheet-act">
+      <button type="button" class="btn ghost" id="revise" aria-pressed="false">Show every solution</button>
+      <button type="button" class="btn-link" id="clear">Clear the sheet</button>
+    </div>
+  </aside>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script>
+(function(){
+'use strict';
+var SVGNS='http://www.w3.org/2000/svg';
+var LET=['A','B','C','D'];
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function el(tag,attrs){var n=document.createElementNS(SVGNS,tag);if(attrs){for(var k in attrs){if(attrs[k]!=null)n.setAttribute(k,attrs[k]);}}return n;}
+function BX(){return '<span class="bx">beyond the article</span>';}
+
+/* ---------------- sections ---------------- */
+var SECTIONS=[
+ {k:'sc',title:'Single correct option',rule:'Exactly one option is correct. +3 if right, −1 if wrong, 0 if left blank.',short:'one correct option; +3, −1'},
+ {k:'mc',title:'One or more correct options',rule:'+4 for exactly the right set. If you choose no wrong option, +1 for each right option you chose. −2 if you choose any wrong option.',short:'one or more correct; +4 for the full set, +1 per right option if none wrong, −2 if any wrong'},
+ {k:'ar',title:'Assertion and reason',rule:'Decide whether each statement is true and whether the reason explains the assertion. +3 if right, −1 if wrong.',short:'assertion and reason; +3, −1'},
+ {k:'mm',title:'Matching lists',rule:'Match each entry in List I with one entry in List II, then pick the option with the right set of matches. +3 if right, −1 if wrong.',short:'match List I with List II; +3, −1'},
+ {k:'cp',title:'Passages',rule:'Read the passage, then answer the questions below it. One option is correct. +3 if right, −1 if wrong.',short:'two passages; +3, −1'},
+ {k:'int',title:'Whole-number answers',rule:'Type a whole number. +4 if right, 0 otherwise. No negative marking.',short:'whole-number answer; +4, no negative marks'}
+];
+var AR_OPTS=[
+ 'Both A and R are true, and R is the correct explanation of A',
+ 'Both A and R are true, but R is not the correct explanation of A',
+ 'A is true, but R is false',
+ 'A is false, but R is true'
+];
+function ar(a,r){return '<p class="ar"><b>Assertion (A):</b> '+a+'</p><p class="ar"><b>Reason (R):</b> '+r+'</p>';}
+function mm(lead,l1,l2){
+  var h='<p>'+lead+'</p><div class="mm"><div><h4>List I</h4><ul>';
+  ['P','Q','R','S'].forEach(function(k,i){h+='<li><b>'+k+'</b><span>'+l1[i]+'</span></li>';});
+  h+='</ul></div><div><h4>List II</h4><ul>';
+  l2.forEach(function(t,i){h+='<li><b>'+(i+1)+'</b><span>'+t+'</span></li>';});
+  return h+'</ul></div></div>';
+}
+
+var PASSAGES={
+ p1:{title:'Passage I: on-sale night',d:'onsale',html:
+  '<p>A ticketing site caches each event in Redis under <code>eventId:eventObject</code> using read-through caching. A stadium tour goes on sale at 19:00. From 18:55 the event page gets about 400,000 reads/s, spread across 40 stateless Event Service instances behind a load balancer. The Events database is sized for about 2,000 queries/s.</p>'+
+  '<p>The event’s cache entry was written at 18:10 with a 1-hour TTL. The event JSON is also cached in browsers for 5 minutes. At 19:20 the promoter moves the show to a new venue, and fans must see the new address right away. Seat availability reaches open pages through server-sent events (SSE).</p>'},
+ p2:{title:'Passage II: a singer posts',d:'feed',html:
+  '<p>A feed product precomputes each user’s feed, a capped list of about 200 post IDs, using async workers that copy every new post into followers’ feeds (fan-out on write). Accounts above a follower threshold are flagged; the workers skip them, and their recent posts are merged into feeds at read time.</p>'+
+  '<p>Post bodies are cached in front of DynamoDB. A singer with 90 million followers posts, and within minutes the post draws 400,000 reads/s. Each cache instance can serve about 100,000 reads/s, and the team runs 8 of them.</p>'}
+};
+
+/* ---------------- questions ---------------- */
+var QS=[
+/* ===== Section 1: single correct ===== */
+{s:'sc',topic:'The order of moves; indexing',
+ stem:'<p>A “products in this category, cheapest first” endpoint serves about 8,000 reads/s. Database CPU sits at 95%, and <code>EXPLAIN</code> shows <code>Seq Scan on products</code> for <code>WHERE category_id = ? ORDER BY price LIMIT 20</code>. What should you do first?</p>',
+ o:['Put Redis in front with a 5-minute TTL so most requests never reach the database','Add three asynchronous read replicas and spread the reads across them','Create a compound index on <code>(category_id, price)</code>','Functionally shard the products table by category'],
+ a:'C',
+ sol:'<p>The article’s order is: optimize inside the database, then scale it horizontally, then add external caches. Two clues say you are still at step one. A sequential scan means a missing index, and 8k reads/s is far below the rough 50k–100k reads/s per database (with proper indexing) at which the article says you need replicas or a cache.</p><p>An index turns the O(n) full-table scan into an O(log n) lookup; putting <code>category_id</code> first and <code>price</code> second also returns rows already in price order (that it serves the <code>ORDER BY</code> too is '+BX()+'). A cache (A) only hides the scan until a miss or expiry; replicas (B) copy the same full scans onto more machines; sharding (D) is mainly a write-scaling tool with heavy operational cost. The article’s warning: most candidates jump to distributed caching before exhausting the simpler fixes.</p>',
+ src:'Scaling Reads article: “Optimize Within Your Database”, “Scale Your Database Horizontally”, Conclusion'},
+
+{s:'sc',topic:'Compound index column order',d:'index',
+ stem:'<p>A table has one compound index on <code>(status, created_at)</code>. The figure shows the order the B-tree keeps its entries in. Which query gets the least help from this index?</p>',
+ o:['<code>WHERE status = \'active\'</code>','<code>WHERE status = \'active\' AND created_at &gt; \'2025-03-01\'</code>','<code>WHERE created_at &gt; \'2025-03-01\'</code>','<code>WHERE status = \'pending\' ORDER BY created_at DESC</code>'],
+ a:'C',
+ sol:'<p>Column order matters. The index is sorted by <code>status</code> first and by <code>created_at</code> only inside each status, so it serves queries on status alone or on status plus created_at, but not on created_at alone. That is the article’s own example.</p><p>In the figure, the dates restart every time the status changes, so “after March 1” is scattered across rows 2, 3, 5 and 7 with no single range to scan. (D) is helped too: inside one status the dates are already ordered, so the database can read them backwards ('+BX()+', standard B-tree behaviour).</p>',
+ src:'Scaling Reads article: deep dive “queries taking longer as your dataset grows”'},
+
+{s:'sc',topic:'Read replicas; replication lag',d:'lag',
+ stem:'<p>A user edits their bio, gets a 200 OK, refreshes and sees the old bio. Ten seconds later the new one appears. Given the setup in the figure, what is the most likely cause, and the best targeted fix?</p>',
+ o:['A cache stampede; add probabilistic early refresh','Replication lag from asynchronous replication; route that user’s reads to the leader for a short window after they write','A hot key on the user’s row; fan the key out into ten copies','A missing index on <code>user_id</code>; add one'],
+ a:'B',
+ sol:'<p>All writes go to the leader and reads can land on any follower. With asynchronous replication a follower can trail the leader, so a read right after a write may return the old value. The article calls replication lag a common interview question and warns that users might not see their own changes.</p><p>Synchronous replication would fix it but adds latency to every write. Sending a user’s own reads to the leader for a few seconds after they write (usually called read-your-writes, '+BX()+') keeps async replication’s speed for everyone else.</p>',
+ src:'Scaling Reads article: “Read Replicas”'},
+
+{s:'sc',topic:'Replicas versus sharding',d:'shard',
+ stem:'<p>Your Postgres cluster has one leader and three read replicas, and each node holds the full 8 TB dataset. Read throughput is fine, but even indexed point lookups have become slow because the working set no longer fits in memory. Which statement is most accurate?</p>',
+ o:['Add more replicas; spreading load will make each lookup faster','Replicas spread load, but every one still holds all 8 TB; sharding shrinks the data each node must search, at a real cost in operational complexity','Switch to synchronous replication so replicas answer faster','Denormalize the hot tables so lookups need fewer joins'],
+ a:'B',
+ sol:'<p>The article draws exactly this line: read replicas distribute load but don’t reduce the dataset size each database handles. When the dataset itself is the problem, sharding helps reads two ways: smaller datasets mean faster queries, and load spreads across databases. It names functional sharding (users in one database, products in another) and geographic sharding (US data in US databases).</p><p>The caveat to say out loud: sharding is primarily a write-scaling technique with significant operational complexity, and for most read problems caching is more effective and easier. (C) changes consistency, not speed; (D) attacks joins, which aren’t the issue.</p>',
+ src:'Scaling Reads article: “Database Sharding”'},
+
+{s:'sc',topic:'CDN suitability',
+ stem:'<p>You may put exactly one of these GET endpoints behind a CDN. Which is the worst choice?</p>',
+ o:['Ticketmaster <code>/events/{eventId}</code>: name, venue and performers','FB Post Search <code>/search?q=taylor&amp;sort=likes</code>, whose results are not personalized','<code>/me/settings</code>, the signed-in user’s account settings','Bitly <code>/{short_code}</code> redirects'],
+ a:'C',
+ sol:'<p>A CDN only pays off when many users request the same response. Account settings, private messages and preferences are requested by one person, so the hit rate is essentially zero (and a misconfigured edge could serve one user’s data to another, '+BX()+').</p><p>The other three share naturally: event details; non-personalized search, where the FB Post Search breakdown adds cache-control headers so the CDN can cache <code>/search</code>; and popular short codes, where the Bitly breakdown runs redirect logic at the edge with Cloudflare Workers or Lambda@Edge.</p>',
+ src:'Scaling Reads article: “CDN and Edge Caching”; FB Post Search and Bitly breakdowns'},
+
+{s:'sc',topic:'TTL from the staleness requirement',
+ stem:'<p>FB Post Search requires new posts to be searchable within 1 minute. You add a Redis cache of search results. Which expiry policy fits?</p>',
+ o:['5–15 minutes, the article’s safety-net TTL','A TTL under 1 minute','No TTL; when a post is created, delete every cached query it would match','24 hours, like the Ticketmaster search-cache example'],
+ a:'B',
+ sol:'<p>The article says TTLs should come from the non-functional requirement on staleness: if results may be at most N seconds stale, N is your TTL. Here N is under 60 s, and the breakdown sets a TTL under one minute.</p><p>The 5–15 minute default (A) is only a safety net when no requirement says otherwise. (C) is impractical: a new post can match an unknown number of cached query strings. The Ticketmaster breakdown makes the same point: search queries and their possible results aren’t connected, so targeted invalidation is hard. (D) would break the one-minute promise.</p>',
+ src:'Scaling Reads article: TTL and non-functional requirements; FB Post Search breakdown, deep dive 1'},
+
+{s:'sc',topic:'Hot key: fanout versus coalescing',d:'hot',
+ stem:'<p>A celebrity post is fully cached, so there are no misses. Each cache node handles about 50k requests/s, but this one key now gets 500k requests/s and its node is timing out. Which change targets the bottleneck most directly?</p>',
+ o:['Add request coalescing on the app servers','Store identical copies under <code>post:42:1</code> … <code>post:42:10</code> and have readers pick one at random','Shorten the key’s TTL so it refreshes more often','Add more database read replicas'],
+ a:'B',
+ sol:'<p>The data is already in memory; the node’s CPU and network simply can’t serialize and send it 500k times a second. When the load itself has to be spread, the article’s answer is cache key fanout: ten copies under suffixed keys, chosen at random, about 50k/s each.</p><p>Coalescing (A) is the article’s fix for many identical requests hitting the backend at once (it caps backend fetches at one per app server); it is not aimed at a key that is already a hit. A shorter TTL (C) only adds misses; replicas (D) sit behind the cache and never see this traffic. The price of fanout: ten times the memory for that key and ten entries to clear on invalidation.</p>',
+ src:'Scaling Reads article: deep dive “millions of concurrent reads for the same cached data”'},
+
+{s:'sc',topic:'Cache stampede',d:'stampede',
+ stem:'<p>A homepage payload serves 100,000 requests/s from cache with a 1-hour TTL. Rebuilding it joins ten tables and calls two external APIs, which takes about 8 seconds. Product says no user request may ever wait on a rebuild. Which approach fits?</p>',
+ o:['A distributed lock: the first request rebuilds while the rest wait','Probabilistic early refresh, with the refresh chance rising as expiry nears','A background process that refreshes the entry about every 50 minutes, before it can expire','Lower the TTL to 1 minute so each rebuild affects fewer requests'],
+ a:'C',
+ sol:'<p>All three named stampede fixes appear here. The lock (A) protects the database but parks thousands of requests for 8 seconds, and if the rebuild fails they time out; the article calls it fragile under load. Probabilistic early refresh (B) spreads refreshes over the last 10–15 minutes, but each refresh is still triggered by a live request, so a few unlucky users pay for it.</p><p>For the most critical data the article recommends a background job that refreshes before expiry (every 50 minutes for a 60-minute TTL), so no request ever triggers a rebuild, at the cost of extra infrastructure and refreshing data that may not be read. (D) makes expiries sixty times more frequent.</p>',
+ src:'Scaling Reads article: deep dive “rebuild an expired cache entry simultaneously”'},
+
+{s:'sc',topic:'Invalidation race; versioned keys',d:'race',
+ stem:'<p>The figure shows “update the database, then delete the cache key” going wrong. Which race does cache key versioning remove?</p>',
+ o:['A reader misses, reads the old row, and writes that old value back into the cache after the writer has deleted the key','Thousands of readers miss the same key at the instant it expires','A follower serves a value the leader has already overwritten','One cache node is overloaded by a single popular key'],
+ a:'A',
+ sol:'<p>In the figure the slow reader finishes after the writer’s delete, so the stale value goes back into the cache and stays until the TTL. This is the race condition the article lists for naive delete-after-write, along with not knowing which layers to clear and invalidations that fail.</p><p>With versioning, the version lives in the database row and is incremented in the same transaction as the update. Readers build the key from it (<code>event:123:v42</code> becomes <code>event:123:v43</code>). The late reader writes to the old key, which nobody looks up anymore, so a late writer can never overwrite new data. (B) is a stampede, (C) is replication lag, (D) is a hot key.</p>',
+ src:'Scaling Reads article: deep dive “cache invalidation when updates need to be immediately visible”'},
+
+{s:'sc',topic:'Where versioning stops working',
+ stem:'<p>Cache key versioning is a poor fit for which of these?</p>',
+ o:['A user profile','A product detail record','An event’s venue details','The cached results page for “pizza near me”'],
+ a:'D',
+ sol:'<p>Versioning shines for single-entity caches: one row, one version column, one key. A search result or feed is computed from many entities, so there’s no single version to bump when any of them changes; the article says versioning doesn’t help much there. Use TTLs bounded by the staleness requirement, tags, or a deleted-items cache instead.</p><p>Its other costs: two lookups per read (version, then data), and old versions pile up until a TTL clears them.</p>',
+ src:'Scaling Reads article: cache versioning trade-offs'},
+
+{s:'sc',topic:'Deleted-items cache',
+ stem:'<p>A post is removed for policy reasons. Its ID sits inside millions of cached, precomputed feeds, and users must stop seeing it right away. What does the article suggest?</p>',
+ o:['Rewrite every cached feed synchronously before acknowledging the removal','Keep a small cache of recently deleted post IDs, filter them out while serving feeds, and clean up the big cached structures in the background','Version every feed and bump all the versions','Set feed TTLs to zero for an hour'],
+ a:'B',
+ sol:'<p>A deleted-items cache is a tiny working set, just recent deletions, cheap enough to check on every request. You serve the mostly-correct cached feed, filter out matches, and repair the expensive structures in the background. The article calls it very efficient for content moderation and privacy changes.</p><p>(A) is an enormous synchronous fan-out; (C) has no single version to bump; (D) turns every feed read into a rebuild.</p>',
+ src:'Scaling Reads article: deleted items cache'},
+
+{s:'sc',topic:'Bitly: 301 or 302',d:'bitly',
+ stem:'<p>In the Bitly design someone proposes switching redirects from 302 to 301, since browsers cache 301s and that would cut read load for free. Why does the breakdown keep 302?</p>',
+ o:['302 responses are smaller on the wire','A cached 301 lets browsers skip your servers, so you lose the ability to change or expire links and to count clicks; do your read offloading in caches you control','CDNs can’t cache 302 responses','A 301 can’t carry a Location header'],
+ a:'B',
+ sol:'<p>A 301 hands control to every browser’s cache: later visits may go straight to the long URL, so updates, deletions, expirations and click tracking stop working. The breakdown prefers 302 for control and analytics and handles read volume with the short code as primary key (a B-tree index), an in-memory Redis cache with LRU eviction, and redirects at CDN edge workers, all layers you can invalidate.</p><p>It’s the browser layer from the article’s invalidation deep dive: the hardest cache to take back.</p>',
+ src:'Bitly breakdown: redirect types and deep dive 2'},
+
+{s:'sc',topic:'Bitly: TTL when links can expire',
+ stem:'<p>The pattern article says to cache Bitly mappings “with no expiration (URLs don’t change)”. The Bitly breakdown, though, lets users set an optional expiration date. What cache policy fits both?</p>',
+ o:['Never expire; mappings are immutable','Give each entry a TTL that matches or is shorter than the link’s expiration, and let LRU eviction manage memory','A flat 5-minute TTL for every link','Don’t cache links that have an expiration date'],
+ a:'B',
+ sol:'<p>The mapping itself never changes, which is why aggressive caching works so well here. The only thing that can make an entry wrong is the link expiring, so the breakdown sets the cache TTL to match or be shorter than the URL’s expiration; an expired link then misses the cache, hits the database and gets 410 Gone. Memory is still finite, so LRU decides what stays.</p><p>(C) throws away the main win; (D) gives up caching for no reason.</p>',
+ src:'Scaling Reads article: Bitly scenario; Bitly breakdown: redirect flow and in-memory cache'},
+
+{s:'sc',topic:'Ticketmaster: the seat-map read path',
+ stem:'<p>In Ticketmaster a reservation is a Redis key with a 10-minute TTL, and the seat map must show reserved seats as unavailable. Why does the breakdown keep reserved seats in a sorted set scored by expiry time instead of a plain set of ticket IDs?</p>',
+ o:['Sorted sets are faster to read than sets','A set member doesn’t expire when the lock key does, so abandoned checkouts would leave seats looking reserved forever; with expiry scores, reads count only future scores and trim old ones lazily','Sorted sets make the reservation atomic','Sorted sets let one event be split across shards'],
+ a:'B',
+ sol:'<p>This is a read-path correctness detail. A TTL on the lock key does nothing to a member of some other set, so a plain set collects “ghost” reservations. With <code>ZADD event:{eventId}:reserved &lt;expiresAt&gt; ticketId</code>, the seat-map read counts only members whose score is in the future, and <code>ZREMRANGEBYSCORE</code> trims stale ones whenever the set is touched.</p><p>Atomicity (C) comes from <code>SET key value NX EX</code> on the lock itself; that’s the Dealing with Contention pattern.</p>',
+ src:'Ticketmaster breakdown: deep dive 1, distributed lock challenges'},
+
+{s:'sc',topic:'Local delivery: where the order reads',
+ stem:'<p>In the local delivery design, availability reads use Redis (1-minute TTL) and Postgres read replicas, with inventory partitioned by region. When a customer places an order, where must the stock check happen?</p>',
+ o:['In Redis, since it was refreshed recently','On the nearest read replica, which is cheaper','Inside one SERIALIZABLE transaction on the Postgres leader that checks stock, records the order and updates inventory','At the CDN edge, closest to the customer'],
+ a:'C',
+ sol:'<p>Read scaling stops where correctness starts. Availability can be a minute stale (a shopper might briefly see an item that’s gone), but orders must never sell the same physical item twice. The breakdown sends orders to the leader in a single atomic transaction, and the Order Service expires the affected cache entries when it writes.</p><p>Ticketmaster has the same split: caches and replicas for browsing, the primary for purchases.</p>',
+ src:'Local Delivery Service breakdown: order flow and deep dive 2'},
+
+{s:'sc',topic:'FB News Feed: redundant post cache',
+ stem:'<p>In FB News Feed, a sharded post cache (each post on exactly one node) still melts when a post goes viral. The breakdown’s great solution is a redundant post cache. Which statement about it is true?</p>',
+ o:['Each post still lives on one node, but that node gets more memory','Every instance can serve any post and a load balancer spreads requests, so a viral post’s traffic splits across all N instances; the costs are up to N database misses per post and fewer distinct posts cached overall','The instances must coordinate to keep their copies in sync','Posts no longer need a TTL'],
+ a:'B',
+ sol:'<p>Sharding solved capacity but not hotness: whichever shard owns the viral post takes all of its traffic. Replicating the cache instead gives N times the throughput for a hot key with no coordination. A viral post may now cause N misses instead of 1, still tiny next to millions of uncached reads, and because every instance holds similar data, fewer distinct posts fit overall.</p><p>Posts keep a long TTL with LRU eviction and are invalidated on edit. Compare the article’s key fanout: the same idea, applied per key instead of per instance.</p>',
+ src:'FB News Feed breakdown: deep dive 3, uneven reads of posts'},
+
+{s:'sc',topic:'YouTube Top K: precompute versus cache-on-miss',d:'topk',
+ stem:'<p>YouTube Top K caches results under <code>top-k:{window}:{truncated_timestamp}</code> with a TTL of a couple of hours. When an entry expires there are two problems: (a) a flood of requests reaches the database, and (b) requests break the tens-of-milliseconds SLA because recomputing takes far longer. Which is correct?</p>',
+ o:['Request coalescing fixes both (a) and (b)','Coalescing helps with (a) only; a cron that precomputes each window and warms the cache fixes (b) as well','A longer TTL fixes both','Neither can be fixed without approximation such as Count-Min Sketch'],
+ a:'B',
+ sol:'<p>Coalescing lets one request per server reach the database, which tames the flood, but the requests waiting on that fetch still blow the latency budget. The breakdown’s great solution is a cron that precomputes each window on a schedule and writes it to the cache, so the Top-K service only ever reads the cache. Keeping entries for a couple of hours lets it serve slightly stale data if the cron runs late.</p><p>It is the article’s background refresh, applied to a precomputed aggregate.</p>',
+ src:'YouTube Top K breakdown: deep dive 1'},
+
+{s:'sc',topic:'When not to scale reads: small scale',
+ stem:'<p>The interviewer says: “Design an internal expense tool for 1,000 employees. Reads outnumber writes about 30 to 1.” What shows the best judgment?</p>',
+ o:['Add Redis and a CDN, since 30:1 is a classic read-heavy ratio','One well-indexed database, and say you’d add caching only if scale changes','Shard by department to keep queries small','Add read replicas in each office’s region'],
+ a:'B',
+ sol:'<p>The ratio alone isn’t the trigger; absolute load is. The article: if the interviewer specifies 1,000 users, don’t jump into complex caching. A well-indexed single database handles thousands of QPS. Show judgment by solving the actual problem, not the imagined one.</p>',
+ src:'Scaling Reads article: “When NOT to Use”'},
+
+{s:'sc',topic:'Load versus latency',d:'geo',
+ stem:'<p>Database CPU sits at 20% and median query time is 3 ms, yet users in Sydney see 250 ms on API calls served from Virginia. Which reading matches the article?</p>',
+ o:['A read-scaling problem: add read replicas in Virginia','Not a database-load problem but a latency one; consider edge caching for shared responses, or edge computing','Add indexes to cut the 3 ms query time','Denormalize to remove joins'],
+ a:'B',
+ sol:'<p>The article’s closing reminder: read scaling is about reducing database load. If the database handles the load but you need lower latency, that’s a different problem with different solutions, such as edge computing.</p><p>Here the cost is distance. If responses are shared across users, a CDN edge near Sydney turns roughly 200 ms round trips into under 10 ms; if they’re user-specific, you need compute or data closer to the user ('+BX()+'). Replicas in Virginia (A) don’t move anything closer.</p>',
+ src:'Scaling Reads article: “When NOT to Use” and “CDN and Edge Caching”'},
+
+{s:'sc',topic:'FB Post Search: why caching works on a write-heavy system',
+ stem:'<p>FB Post Search estimates about 10k searches/s against 10k new posts/s and 100k likes/s, so it’s write-heavy. Yet the breakdown still scales the search path with a distributed cache and a CDN. Why does that work?</p>',
+ o:['Likes are really reads, so the system is read-heavy after all','Results aren’t personalized and may be up to a minute stale, so identical queries repeat and one cached answer serves everyone','CDNs are required for any API above 1,000 requests/s','Caching is cheaper to run than the inverted index'],
+ a:'B',
+ sol:'<p>Caching needs two things: repeated identical requests and tolerance for staleness. Removing personalization means the same query returns the same results for every user, and the one-minute freshness requirement bounds the TTL. The read:write ratio is a hint, not the rule.</p><p>The write side is solved separately: Kafka in front of ingestion, sharding the index by keyword, and updating like counts only at milestones (powers of 2) with a fresh re-rank at query time. That’s the Scaling Writes pattern.</p>',
+ src:'FB Post Search breakdown: scale estimates and deep dives 1 and 3'},
+
+{s:'sc',topic:'Yelp: average rating in search',
+ stem:'<p>Yelp must return search results in under 500 ms for 100M daily users across 10M businesses, and every result shows the business’s average rating. People search far more than they review: up to 1,000 reads per write, or about one new review per second. How should the average be kept ready for search?</p>',
+ o:['Compute <code>AVG(rating)</code> over the reviews table on every search','Write each review to a message queue and let a consumer update the average in a separate service','Store <code>avgRating</code> and <code>numRatings</code> on the business row and update them synchronously in the same write that adds the review','Cache each business’s average at the CDN'],
+ a:'C',
+ sol:'<p>Computing the average on every search (A) is the expensive read the article tells you to precompute; the breakdown calls it terribly inefficient. Storing the result on the business row is denormalization, paid for on the much rarer write. The final design does exactly this: add the review and synchronously update <code>avgRating</code> and <code>numRatings</code>, with CDC carrying the new values into Elasticsearch for search.</p><p>(B) is what most senior candidates propose, and the breakdown calls it decent but needlessly complex: about 100k reviews a day is roughly one write per second, which any database absorbs. Saying so is, in its words, a hallmark of a staff candidate. With both fields stored, the update is new average = (average × n + rating) ÷ (n + 1) ('+BX()+'). (D) doesn’t remove the computation and adds an edge cache to invalidate.</p>',
+ src:'Yelp breakdown: deep dive 1 and final design'},
+
+{s:'sc',topic:'Distributed Cache: hot-key reads',
+ stem:'<p>You are designing the cache itself (1 TB of data, 100k requests/s, gets under 10 ms). One key is read far more than any single node can serve. Which answer to the “hot key being read a lot” deep dive is not reasonable?</p>',
+ o:['Keep several copies of the key under suffixed names on different nodes and spread reads across them','Let clients hold a tiny local copy of the very hottest keys for a few seconds','Add replicas of the shard that owns the key and read from them','Move the key to a node with a larger disk'],
+ a:'D',
+ sol:'<p>An in-memory cache is bounded by CPU and network per node, not disk, so (D) changes nothing.</p><p>(C) is what the breakdown’s final design leans on: asynchronous replication gives each node read replicas, used both for availability and for handling hot-key reads. (A) is the pattern article’s cache key fanout; in the Distributed Cache breakdown, random key suffixes appear in the final design for spreading hot-key writes across nodes. (B) is a common answer too ('+BX()+'): a short-lived client-side copy absorbs repeat reads before they leave the app.</p><p>The breakdown adds two nuances worth saying: hot keys are usually a property of the cache’s clients rather than the cache itself, and hot reads and hot writes are separate problems with different fixes.</p>',
+ src:'Distributed Cache breakdown: deep dives 4–5 and final design; Scaling Reads article: cache key fanout'},
+
+{s:'sc',topic:'Instagram: splitting the read path',
+ stem:'<p>Instagram: 500M DAU, 100M posts a day, feeds under 500 ms, media rendered in under 200 ms, photos up to 8 MB and videos up to 4 GB. Which split of the read path is right?</p>',
+ o:['Serve media bytes through the feed service and cache them in Redis next to the feed','Serve the feed as post IDs and metadata from precomputed feeds and caches, and serve media from blob storage through a CDN','Store photos as database BLOBs and add read replicas','Cache each user’s full feed response at the CDN'],
+ a:'B',
+ sol:'<p>The breakdown splits along exactly this line. Feeds: when a post is created, its ID goes on a message queue and a fan-out service writes it into followers’ precomputed feeds in Redis (the long-running-tasks pattern), with celebrity posts merged at read time. Media: uploaded straight to S3 through presigned multipart URLs, then served through a global CDN such as CloudFront, with an image-processing service (Cloudinary or Imgix) producing sizes that suit each device.</p><p>(A) pushes gigabytes through app servers and memory. (C)’s mistake is the BLOBs, not the database: the breakdown notes Instagram really does keep post metadata in PostgreSQL. (D) fails because a feed is personalized, so an edge copy serves no one else.</p>',
+ src:'Instagram breakdown: deep dives 1–3 and final design'},
+
+{s:'sc',topic:'News Aggregator: serving regional feeds',
+ stem:'<p>A news aggregator serves 100M daily users, spiking toward 500M during breaking news, with feeds in under 200 ms. Availability beats consistency, and the core feed is the same for everyone in a region. Which plan matches the breakdown?</p>',
+ o:['Query the article database on each request, with good indexes on region and publish date','Precompute each region’s feed in Redis, keep it fresh with CDC from the article database, add read replicas per region for spikes, and serve thumbnails from S3 through a CDN','Shard each region’s feed cache across many nodes, since the article set is too big for one','Link straight to publishers’ own images so the platform stores no media'],
+ a:'B',
+ sol:'<p>(A) is the high-level design the deep dive replaces: 500M to 1B feed requests a day can’t all hit the database within 200 ms. The breakdown precomputes regional feeds in a Redis read cache kept current by CDC, so feed reads never touch the database. For spikes it leans on regionality: a deployment per region, stateless Feed Service instances that auto-scale, and Redis read replicas behind each regional master.</p><p>(C) misreads the problem: a region holds only about 2,000 recent articles, which fits on one master, so the spike is about requests per second and calls for replicas, not shards. (D): the breakdown downloads thumbnails into S3 and serves them through CloudFront because publisher images can be slow, move or disappear.</p>',
+ src:'News Aggregator breakdown: deep dives 2, 4 and 5, final design'},
+
+{s:'sc',topic:'Metrics Monitoring: dashboards over weeks',
+ stem:'<p>A metrics platform ingests 5M data points/s, and dashboard queries must return within seconds even across weeks. At 10-second resolution, one series over 4 weeks is about 242,000 points. What is the read-scaling move?</p>',
+ o:['Cache the raw points in Redis','Pre-aggregate rollups at coarser resolutions (say 1 minute and 1 hour) as data arrives, query the coarsest one that fits the range, and briefly cache popular dashboard queries','Add read replicas of the raw store and nothing else','Serve dashboards from a CDN'],
+ a:'B',
+ sol:'<p>The breakdown names two instincts for this deep dive: caching and pre-computation. Its storage layer keeps multi-resolution rollups, and the query service checks Redis for precomputed or partial results before scanning the time-series database. A month-long chart can’t draw 242,000 points per line anyway. Rolling up as data arrives is the article’s materialized-view idea (YouTube Top K calls it aggregating at a coarser granularity), and the requirements accept eventual consistency for dashboards, so short-lived caching is safe.</p><p>(A) and (C) still read every raw point; (D) gets little reuse from per-team, ever-changing time ranges. The query service is also kept separate from ingestion so caching can be added without complicating the write path, which is a Scaling Writes problem of its own.</p>',
+ src:'Metrics Monitoring breakdown: storage architecture, deep dive 1 and final design'},
+
+{s:'sc',topic:'Yelp: searching by neighborhood',
+ stem:'<p>Yelp adds search by place names such as “pizza in the Mission”. Each city or neighborhood is stored as a polygon. Businesses rarely move, but searches arrive constantly. Which approach does the breakdown end up with?</p>',
+ o:['Look up the polygon and run a geo-shape query against the businesses on every search','Draw a radius around the neighborhood’s center and filter by distance','When a business is created, compute the named areas it falls in and store them as identifiers (for example <code>["bay_area", "san_francisco", "mission_district"]</code>) in a keyword field with an inverted index','Cache the result list for every possible place name at the CDN'],
+ a:'C',
+ sol:'<p>(A) works, since PostGIS and Elasticsearch both support polygon queries, but the breakdown calls doing it on every request inefficient. The better move is to precompute once, at write time: tag each business with the areas that contain it, and searching a place becomes a plain keyword lookup on an inverted index. It’s the pattern’s core trade again: do the expensive work on the rare write so every read is cheap.</p><p>(B) fails because neighborhoods aren’t circles. (D) caches outputs but leaves the expensive query behind every miss.</p>',
+ src:'Yelp breakdown: deep dive 4'},
+
+{s:'sc',topic:'News Aggregator: paging a feed that keeps changing',
+ stem:'<p>A user scrolls a regional news feed with <code>?page=2&amp;limit=20</code> while 50–100 new articles an hour land at the top. They start seeing duplicates and missing stories. What does the breakdown switch to?</p>',
+ o:['Larger pages, so fewer page boundaries are crossed','Cursor-based pagination on monotonically increasing article IDs, so each request asks for items older than the last one seen','A shorter cache TTL on the regional feed','A snapshot of the whole feed per user at the start of each session'],
+ a:'B',
+ sol:'<p>Offset pagination counts positions, and positions shift every time an article is added at the top, so the next page overlaps or skips. A cursor names a fixed point (“older than article 81234”) that stays valid however much is inserted above it, and the breakdown pairs it with the sub-200 ms requirement. FB News Feed uses the same idea with a timestamp cursor.</p><p>(A) only makes the drift rarer; (C) changes freshness, not positions; (D) stores a copy per user to solve something a cursor solves for free.</p>',
+ src:'News Aggregator breakdown: deep dive 1; FB News Feed breakdown: API'},
+
+{s:'sc',topic:'Metrics Monitoring: alerts on the read path',
+ stem:'<p>Alerts must fire within 1 minute of a metric being emitted. Before reaching for stream processing, how does the breakdown evaluate alert rules?</p>',
+ o:['A Flink job evaluates every rule against the live Kafka stream','An alert service polls on a fixed interval, running each rule as a query against the same storage that serves dashboards','Each server’s agent evaluates its own alert rules','Alerts fire when a dashboard cache entry expires'],
+ a:'B',
+ sol:'<p>A one-minute budget allows polling, so alerts become scheduled queries on the read path, which is how Prometheus works (rules evaluated on a fixed interval, default one minute). It’s simpler to reason about and debug, and it’s one more reason that read path gets rollups and caching. Stream-based alerting in Flink is added later only for rules that truly need faster detection.</p><p>Notifications go through a separate service that deduplicates, groups, silences and escalates, so one incident doesn’t page someone every minute.</p>',
+ src:'Metrics Monitoring breakdown: high-level design 3–4 and deep dive 2'},
+
+{s:'sc',topic:'Instagram: a feed cache you can lose',
+ stem:'<p>Your Instagram design keeps precomputed feeds in Redis. The interviewer asks what happens if those Redis nodes go down. What does the breakdown suggest you say?</p>',
+ o:['Nothing is lost, because Redis is durable by default','Configure persistence (AOF or RDB snapshots) and run Sentinel for automatic failover, possibly with Redis Cluster for sharding','Move the feeds into the CDN instead','Rebuild every feed synchronously on the next request'],
+ a:'B',
+ sol:'<p>The breakdown flags this as a question to answer before it’s asked: without persistence, a Redis failure loses the cached feeds and degrades the service. A line like “Redis with AOF persistence and Sentinel for failover” shows you aren’t treating the cache as a black box.</p><p>(A) is false. (D) is the stampede the cache exists to prevent. (C) can’t help, because feeds are personalized.</p>',
+ src:'Instagram breakdown: deep dive 1'},
+
+/* ===== Section 2: one or more correct ===== */
+{s:'mc',topic:'Denormalization and materialized views',
+ stem:'<p>Which statements about denormalization and materialized views are correct?</p>',
+ o:['Denormalization trades storage and write complexity for faster reads','A materialized view of each product’s average rating is computed by a background job, so readers see the last computed value','Denormalization suits write-heavy tables because it removes joins from writes','If a user renames themselves, every denormalized <code>order_summary</code> row holding their name must be updated'],
+ a:['A','B','D'],
+ sol:'<p>(A) ✓ The article frames it as trading storage for speed, with writes becoming more complex.</p><p>(B) ✓ Its example computes average ratings once, via a background job, and stores them; between refreshes readers see the last result.</p><p>(C) ✗ Backwards: every write now has to touch the duplicated copies, so denormalize only when reads dominate. Always check the read/write ratio.</p><p>(D) ✓ That is the write-side cost the article names.</p>',
+ src:'Scaling Reads article: “Denormalization Strategies”'},
+
+{s:'mc',topic:'Invalidation strategies',
+ stem:'<p>Which statements about cache invalidation strategies are correct?</p>',
+ o:['Write-through invalidation keeps the cache consistent but adds latency to writes and needs careful error handling','Write-behind invalidation queues invalidations to run asynchronously, which cuts write latency but leaves a window where stale data can be served','Tagged invalidation clears every entry tagged, say, <code>user:123:posts</code> at once, but you must maintain the tag relationships','With versioned keys you must delete each old version promptly, or readers will keep seeing it'],
+ a:['A','B','C'],
+ sol:'<p>(A), (B) and (C) ✓ are the article’s own descriptions.</p><p>(D) ✗ Old versions are never deleted; they become unreachable because readers build keys from the current version. You set reasonable TTLs only to reclaim the memory.</p><p>The article’s production recipe: combine them, with a short TTL (5–15 minutes) as a safety net plus active invalidation for critical data like profiles or inventory counts, and TTL alone for things like recommendation scores.</p>',
+ src:'Scaling Reads article: “Application-Level Caching”'},
+
+{s:'mc',topic:'Request coalescing and key fanout',
+ stem:'<p>Which statements about request coalescing and cache key fanout are correct?</p>',
+ o:['With coalescing on every app server, backend fetches for one key drop to at most one per app server, however many users ask at once','Fanout can be as simple as appending a random number to the key, such as <code>feed:taylor-swift:1</code> through <code>feed:taylor-swift:10</code>','Fanout lowers memory use because each copy holds part of the value','With fanout, an update must clear every copy, not just one'],
+ a:['A','B','D'],
+ sol:'<p>(A) ✓ The article: coalescing cuts backend load from potentially unbounded to exactly N, the number of app servers.</p><p>(B) ✓ That is the article’s example.</p><p>(C) ✗ Each copy is a full duplicate, so memory grows with the number of copies.</p><p>(D) ✓ The consistency cost the article names: invalidation gets harder because every copy must go.</p>',
+ src:'Scaling Reads article: hot key deep dive'},
+
+{s:'mc',topic:'Leader–follower replicas',
+ stem:'<p>Which statements about leader–follower read replicas are correct?</p>',
+ o:['If the leader fails, a replica can be promoted to take its place','Synchronous replication keeps followers consistent but adds latency to writes','Adding replicas shrinks the data each node must store and search','All writes go to the leader, while any replica can serve reads'],
+ a:['A','B','D'],
+ sol:'<p>(A) ✓ Redundancy is the article’s “nice added benefit” of replicas.</p><p>(B) ✓ Synchronous is slower but consistent; asynchronous is faster but can be stale.</p><p>(C) ✗ Every replica holds the full dataset; shrinking it is sharding’s job.</p><p>(D) ✓ That is leader–follower replication.</p>',
+ src:'Scaling Reads article: “Read Replicas”'},
+
+{s:'mc',topic:'Ticketmaster: what to cache hard',
+ stem:'<p>Ticketmaster’s view API must survive tens of millions of concurrent requests when a popular event goes on sale. Which data fits an aggressive, long-TTL cache?</p>',
+ o:['Venue location and capacity','Performer bios','Which seats are available right now','Event name and date, with a database trigger invalidating the entry if the date changes'],
+ a:['A','B','D'],
+ sol:'<p>The breakdown caches data with high read rates and low update frequency (event details, performer bios, static venue information) under keys like <code>eventId:eventObject</code> with read-through caching. Database triggers invalidate entries when, say, a date or lineup changes, and TTLs are long for static venue data but short for availability.</p><p>(C) ✗ changes second by second during an on-sale; the article warns that caching it leads to overselling. Correctness at purchase time comes from the Redis lock and the database transaction (contention), and freshness on screen comes from pushing seat updates over SSE (real-time updates).</p>',
+ src:'Ticketmaster breakdown: deep dive 2; Scaling Reads article: Ticketmaster scenario'},
+
+{s:'mc',topic:'CDN and edge caching',
+ stem:'<p>Which statements about CDN and edge caching are correct?</p>',
+ o:['Modern CDNs cache dynamic content such as API responses, not only static assets','Serving a Tokyo user from a Tokyo edge instead of a Virginia data center can take responses from about 200 ms to under 10 ms','Private messages make good CDN candidates because they’re read often','Edge invalidation takes time to propagate, so critical data can use cache headers that keep it out of the CDN entirely'],
+ a:['A','B','D'],
+ sol:'<p>(A), (B) ✓ straight from the article, which adds that CDN caching can cut origin load by 90% or more for read-heavy apps.</p><p>(C) ✗ Only one person reads a private message, so there’s no hit-rate benefit.</p><p>(D) ✓ For less critical data, the article suggests shorter TTLs at the edge with longer TTLs in the application cache.</p>',
+ src:'Scaling Reads article: “CDN and Edge Caching” and invalidation deep dive'},
+
+{s:'mc',topic:'When to hold back',
+ stem:'<p>For which of these does the article say to focus elsewhere, or to apply read scaling only with extra care?</p>',
+ o:['Uber-style driver location tracking, with updates every few seconds','A real-time collaborative editor like Google Docs','Financial transactions, where stale data does real harm','A URL shortener, where each link is created once and clicked millions of times'],
+ a:['A','B','C'],
+ sol:'<p>(A) ✓ Write-heavy, with a read:write ratio near 2:1 or 1:1: scale writes first.</p><p>(B) ✓ Every keystroke must be visible to others immediately; caching actively hurts.</p><p>(C) ✓ Strongly consistent systems: you may still use these patterns, but with aggressive invalidation and shorter TTLs.</p><p>(D) ✗ The article’s “caching dream”, the opposite case.</p>',
+ src:'Scaling Reads article: “When NOT to Use”'},
+
+{s:'mc',topic:'Rate limiter: what is and isn’t cacheable',d:'rl',
+ stem:'<p>A rate limiter in the API gateway checks a token bucket in Redis on every one of 1M requests/s. Which proposals match the breakdown?</p>',
+ o:['Shard Redis by consistent hashing on the client ID (or use Redis Cluster) so each client’s bucket lives on exactly one shard','Put a read-through cache with a 30-second TTL in front of the bucket counters to cut Redis reads','Keep rate-limit rules cached in each gateway, refreshed by polling a config store or pushed by something like ZooKeeper','For abusive hot keys, block the client through a blocklist and lean on upstream DDoS protection'],
+ a:['A','C','D'],
+ sol:'<p>(A) ✓ A Redis instance does roughly 100k–200k operations/s and each check takes several, so about 10 shards cover 1M/s; consistent hashing keeps one client’s state together.</p><p>(B) ✗ The breakdown calls local caching of rate-limit state risky: a stale count produces a wrong allow or deny. When every read is part of a read-modify-write, read-scaling tools don’t apply; make the whole step atomic with a Lua script instead (contention).</p><p>(C) ✓ Rules are read on every request but change rarely, a textbook cache: poll (say every 30 s) or push.</p><p>(D) ✓ Plus client-side rate limiting for legitimate heavy users. Latency wins come from connection pooling and placing gateways and Redis near users.</p>',
+ src:'Rate Limiter breakdown: deep dives 1, 3, 4 and 5'},
+
+{s:'mc',topic:'YouTube’s read path',
+ stem:'<p>YouTube serves about 100M views a day against about 1M uploads. Which of these are part of the breakdown’s read-scaling story?</p>',
+ o:['A CDN caches popular video segments and manifest files near viewers','For a hot video, its metadata is replicated to more Cassandra nodes and cached in an LRU cache partitioned by video ID','Uploads stream through the application servers so metadata and video stay consistent','Once the manifest and segments are at the edge, playback can continue without calling the backend'],
+ a:['A','B','D'],
+ sol:'<p>(A), (B), (D) ✓ all appear in deep dive 3.</p><p>(C) ✗ The opposite: uploads go straight to S3 through presigned multipart URLs, the Handling Large Blobs pattern. Notice how the two patterns split the work: blobs bypass your servers on the way in, and the CDN keeps them away from your servers on the way out. The article adds that view counts can be eventually consistent, updated every few minutes.</p>',
+ src:'YouTube breakdown: deep dive 3; Scaling Reads article: YouTube scenario'},
+
+{s:'mc',topic:'Local delivery: availability at 20k/s',d:'gopuff',
+ stem:'<p>Local delivery availability lookups run at about 20k/s and must return in under 100 ms. Which statements match the breakdown?</p>',
+ o:['Availability results can be cached in Redis with a short TTL, around 1 minute','When the Order Service writes inventory, it expires the affected cache entries','Availability reads can go to Postgres read replicas, because a little staleness is acceptable there','Partitioning inventory by a region ID (the first three digits of the zip code) means a lookup touches only one or two partitions'],
+ a:['A','B','C','D'],
+ sol:'<p>All four are in the breakdown. It is a compact tour of the pattern: a short-TTL cache with active expiry on writes, replicas for staleness-tolerant reads, and geographic partitioning so queries stay local, while orders go to the leader in a SERIALIZABLE transaction.</p><p>Exam trap: “one or more” can mean all of them.</p>',
+ src:'Local Delivery Service breakdown: deep dive 2'},
+
+{s:'mc',topic:'FB News Feed read path',
+ stem:'<p>Which statements about the FB News Feed read path are correct?</p>',
+ o:['Each precomputed feed holds a capped list of about 200 post IDs, roughly 2 KB per user','Posts from accounts with huge followings aren’t fanned out; they’re merged into feeds at read time','In the hybrid design each user is either entirely fan-out-on-read or entirely fan-out-on-write','A user who scrolls past the precomputed posts can fall back to querying the Follow and Post tables'],
+ a:['A','B','D'],
+ sol:'<p>(A) ✓ 200 IDs × 10 bytes = 2 KB; across 2B users, 4 TB.</p><p>(B) ✓ The follow is flagged as not precomputed and the workers skip it.</p><p>(C) ✗ The choice is per followed account, so most users get a little of both.</p><p>(D) ✓ The breakdown’s fallback. It matches the article’s tip: users read only the first few items, so cap and cache the head of the feed.</p>',
+ src:'FB News Feed breakdown: deep dives 1 and 2'},
+
+{s:'mc',topic:'Instagram: why fan-out on read breaks',
+ stem:'<p>Instagram has 500M DAU, and a user may follow 1,000+ accounts. Which are problems the breakdown lists with building each feed at read time?</p>',
+ o:['Read amplification: every refresh triggers a large number of database reads','Repeated work: users who follow the same accounts keep re-reading the same popular posts','Unpredictable latency that depends on how many accounts a user follows','DynamoDB batch reads remove the problem, since one batch can return any number of items'],
+ a:['A','B','C'],
+ sol:'<p>(A), (B), (C) ✓ are the breakdown’s three named problems. Its numbers: about 10,000 posts to consider per refresh (1,000 accounts × 10 posts), 2.5B feed generations a day, and 150k+ feed requests/s at peak.</p><p>(D) ✗ A DynamoDB batch is capped at 100 items and 16 MB, so a user following 1,000 accounts needs at least 10 batches per refresh. The fix is to move work to write time: a fan-out service fills precomputed feeds in Redis, with a hybrid for celebrity accounts.</p>',
+ src:'Instagram breakdown: deep dives 1 and 3'},
+
+{s:'mc',topic:'Distributed Cache: the final design',
+ stem:'<p>The Distributed Cache breakdown (1 TB, 100k requests/s, under 10 ms, eventual consistency acceptable) ends with a specific set of choices. Which are part of it?</p>',
+ o:['Asynchronous replication, giving each node read replicas for availability and for hot-key reads','Consistent hashing computed in the client, so no round trip to a central routing service','Random key suffixes to spread hot-key writes, plus write batching and connection pooling','Synchronous replication on every write, because a cache must never serve a stale value'],
+ a:['A','B','C'],
+ sol:'<p>(A), (B), (C) ✓ are the final design’s choices. Inside each node, a hash table plus a doubly linked list gives O(1) LRU, and a background janitor removes expired keys.</p><p>(D) ✗ Strong consistency is explicitly out of scope; Redis replicates asynchronously by default and offers <code>WAIT</code> when a client wants replica acknowledgement. Read replicas are the pattern article’s leader–follower idea, applied to the cache itself.</p>',
+ src:'Distributed Cache breakdown: high-level design, deep dives 1–6 and final design'},
+
+/* ===== Section 3: assertion and reason ===== */
+{s:'ar',topic:'Cache stampede',
+ stem:ar('An entry with a 1-hour TTL that serves 100k requests/s can take down a database sized for 1k queries/s at the moment it expires.','Cache expiry is binary: one moment the data exists, the next it doesn’t, so every concurrent request misses together.'),
+ a:'A',
+ sol:'<p>Both are true, and R is exactly why A happens; the article likens it to a DDoS from your own application. Every fix (lock, probabilistic early refresh, background refresh) attacks the “everyone at once” part.</p>',
+ src:'Scaling Reads article: stampede deep dive'},
+
+{s:'ar',topic:'Bitly',
+ stem:ar('The Bitly breakdown prefers 302 redirects over 301.','Memory access is roughly 1,000 times faster than an SSD read.'),
+ a:'B',
+ sol:'<p>Both statements are in the breakdown, but R explains why the Redis cache speeds up redirects, not why 302 is chosen. 302 wins on control: browsers don’t cache it, so you can still update or expire links and count clicks.</p>',
+ src:'Bitly breakdown'},
+
+{s:'ar',topic:'Versioned keys',
+ stem:ar('Cache key versioning lets readers move to fresh data without broadcasting invalidations.','The version number lives only in the cache, which makes bumping it cheap.'),
+ a:'C',
+ sol:'<p>A is true. R is false: the version lives in the database row and is incremented in the same transaction as the update. A small cached “version key” may sit in front of it, with fallback to the database. Keeping the source of truth in the database is what makes version changes atomic and cache keys collision-free.</p>',
+ src:'Scaling Reads article: cache versioning'},
+
+{s:'ar',topic:'Sharding',
+ stem:ar('When a read-heavy database runs out of CPU, sharding is the first tool to reach for.','Sharding is primarily a write-scaling technique and adds significant operational complexity.'),
+ a:'D',
+ sol:'<p>A is false: indexes, denormalization and hardware come first, then replicas and caching. R is true, and it’s part of why A is wrong.</p>',
+ src:'Scaling Reads article: “Database Sharding”'},
+
+{s:'ar',topic:'FB Post Search',
+ stem:ar('Taking personalization out of FB Post Search makes caching far more effective.','Without personalization the same query returns the same results for everyone, so one cached result can serve every user.'),
+ a:'A',
+ sol:'<p>Both true, and R is the explanation. The breakdown calls this out when listing what’s out of scope: de-scoping personalization dramatically simplifies the problem and makes caching much more effective.</p>',
+ src:'FB Post Search breakdown: requirements'},
+
+{s:'ar',topic:'Denormalization',
+ stem:ar('Denormalization optimizes reads at the expense of writes.','Denormalized tables need fewer indexes, which makes their writes faster.'),
+ a:'C',
+ sol:'<p>A is true. R is false and even contradicts A: denormalized data means more copies to update on every change, so writes get more expensive, not cheaper.</p>',
+ src:'Scaling Reads article: denormalization'},
+
+{s:'ar',topic:'Hot key',
+ stem:ar('Adding database read replicas relieves a single cache node that is overloaded by one viral key.','Read replicas distribute read load across several database servers.'),
+ a:'D',
+ sol:'<p>R is true but irrelevant: a cache hit never reaches the database, so A is false. The fix lives in the cache layer: key fanout, or FB News Feed’s redundant cache instances.</p>',
+ src:'Scaling Reads article: hot key deep dive; FB News Feed breakdown'},
+
+{s:'ar',topic:'Indexing',
+ stem:ar('Under-indexing kills more applications than over-indexing does.','Sharding adds significant operational complexity.'),
+ a:'B',
+ sol:'<p>Both claims come from the article, but they’re unrelated. The real reason behind A: modern hardware and database engines handle well-designed indexes efficiently, so the old fear of index write overhead is overblown. In interviews, add indexes for your query patterns with confidence.</p>',
+ src:'Scaling Reads article: “Indexing”'},
+
+{s:'ar',topic:'Yelp',
+ stem:ar('Yelp doesn’t need to shard its business and review data.','About 10M businesses × 100 reviews each is roughly 1 TB, which one modern database instance handles easily.'),
+ a:'A',
+ sol:'<p>Both true, and R is the reason. The breakdown’s staff-level bar is spotting exactly this: the data is small, so a read replica and/or a cache covers the read load. No sharding, and no message queue for roughly one review per second.</p>',
+ src:'Yelp breakdown: high-level design 3 and staff expectations'},
+
+{s:'ar',topic:'News Aggregator',
+ stem:ar('To survive breaking-news spikes, the News Aggregator shards each region’s Redis feed cache across many nodes.','Each region holds only about 2,000 recent articles, so the spike is a read-throughput problem rather than a data-size problem.'),
+ a:'D',
+ sol:'<p>R is true, and it’s exactly why A is false. The data fits on one master; what runs out is requests per second. So each regional master gets read replicas: writes go to the master, reads spread across replicas, and Sentinel promotes a replica if the master fails. Replication lag under about 200 ms is fine for news.</p>',
+ src:'News Aggregator breakdown: deep dive 5'},
+
+{s:'ar',topic:'Metrics Monitoring',
+ stem:ar('Cardinality explosion slows dashboard queries, not just ingestion.','To aggregate a metric, the system must read and combine every series that matches it.'),
+ a:'A',
+ sol:'<p>Both true, and R explains A. Every unique metric-plus-labels combination is its own series, so summing <code>http_requests</code> across millions of series is slow however good the storage is. The breakdown caps it at ingestion: an allowlist of label keys and a series limit per metric, tracked in Redis, with a bloom filter as an optional first pass.</p>',
+ src:'Metrics Monitoring breakdown: deep dive 4'},
+
+/* ===== Section 4: matching ===== */
+{s:'mm',topic:'Problem to signature read technique',
+ stem:mm('Match each problem with the read-scaling technique its breakdown leans on.',
+   ['Bitly redirects','FB News Feed viral posts','YouTube Top K','Local delivery availability'],
+   ['Redundant cache instances behind a load balancer, each able to serve any post','A cron that precomputes each time window and warms the cache','Short code as primary key, Redis with LRU, redirects at CDN edge workers','A 1-minute-TTL cache, read replicas and region partitioning, with orders on the leader']),
+ o:['P→3, Q→1, R→2, S→4','P→3, Q→2, R→1, S→4','P→4, Q→1, R→2, S→3','P→1, Q→3, R→4, S→2'],
+ a:'A',
+ sol:'<p>P→3 (Bitly deep dive 2), Q→1 (FB News Feed deep dive 3), R→2 (Top K deep dive 1), S→4 (Local delivery deep dive 2). Distractor (B) swaps the two easiest-to-confuse items: both are “make the cache take the load”, but one spreads a hot key and the other precomputes an aggregate.</p>',
+ src:'Bitly, FB News Feed, YouTube Top K and Local Delivery Service breakdowns'},
+
+{s:'mm',topic:'Where read scaling must stop',
+ stem:mm('Match each problem with the data that must stay authoritative rather than come from a stale cache.',
+   ['Ticketmaster','Local delivery','Rate limiter','Bitly'],
+   ['The token-bucket counter behind each allow or deny decision','Which seats are still available during an on-sale','The stock check inside the order transaction','Nothing load-bearing: the mapping never changes, so just bound the TTL by the link’s expiry']),
+ o:['P→2, Q→1, R→3, S→4','P→2, Q→3, R→1, S→4','P→3, Q→2, R→1, S→4','P→4, Q→3, R→1, S→2'],
+ a:'B',
+ sol:'<p>P→2: caching availability during an on-sale leads to overselling, so it gets a short TTL plus SSE, and the lock and transaction decide the sale. Q→3: orders run in a SERIALIZABLE transaction on the leader. R→1: stale counts make wrong decisions, so no cache in front of counters. S→4: the mapping is immutable; only expiry bounds the TTL.</p>',
+ src:'Ticketmaster, Local Delivery Service, Rate Limiter and Bitly breakdowns'},
+
+{s:'mm',topic:'Invalidation strategy to use case',
+ stem:mm('Match each invalidation strategy with the case it suits best.',
+   ['TTL only','Write-through invalidation','Versioned keys','Deleted-items cache'],
+   ['Recommendation scores that can be a few minutes stale','A single cached entity where a little extra write latency is worth keeping it exact','An entity cached in Redis, a CDN and browsers that must change immediately, with no race','A moderated post that sits inside millions of cached feeds']),
+ o:['P→1, Q→3, R→2, S→4','P→2, Q→1, R→3, S→4','P→1, Q→2, R→3, S→4','P→4, Q→2, R→3, S→1'],
+ a:'C',
+ sol:'<p>P→1: the article lets less critical data such as recommendation scores rely on TTL alone. Q→2: write-through keeps the cache consistent at the cost of write latency. R→3: putting the version in the key or URL lets every layer route around stale copies. S→4: filter at serve time, repair the feeds later.</p>',
+ src:'Scaling Reads article: invalidation strategies and deep dive'},
+
+{s:'mm',topic:'Requirements worth remembering',
+ stem:mm('Match each problem with the requirement that drives its read design.',
+   ['Bitly','Ticketmaster','Rate limiter','Metrics Monitoring'],
+   ['1M requests/s with under 10 ms added per check','100:1 reads to writes, and 10M users on one event','About 1,000 clicks per new link, and redirects under 100 ms','5M data points/s ingested, with dashboard queries over weeks returning in seconds']),
+ o:['P→3, Q→2, R→4, S→1','P→2, Q→3, R→1, S→4','P→1, Q→2, R→3, S→4','P→3, Q→2, R→1, S→4'],
+ a:'D',
+ sol:'<p>P→3, Q→2, R→1, S→4, each from the breakdown’s own non-functional requirements. Numbers like these are what turn “read-heavy” into a design decision, so they’re worth memorizing as anchors.</p>',
+ src:'Bitly, Ticketmaster, Rate Limiter and Metrics Monitoring breakdowns'},
+
+{s:'mm',topic:'Co-starring patterns',
+ stem:mm('Read scaling rarely works alone. Match each part of a design with the pattern that carries it.',
+   ['Ticketmaster booking','YouTube upload','YouTube Top K ingesting 70B views a day','Ticketmaster seat map during an on-sale'],
+   ['Handling Large Blobs: presigned multipart uploads straight to S3','Dealing with Contention: a Redis lock with a TTL, then an ACID transaction','Real-time Updates: SSE pushes and a virtual waiting queue','Scaling Writes: sharding by video ID and batching in Flink']),
+ o:['P→2, Q→1, R→4, S→3','P→2, Q→4, R→1, S→3','P→3, Q→1, R→4, S→2','P→4, Q→1, R→2, S→3'],
+ a:'A',
+ sol:'<p>P→2, Q→1, R→4, S→3. Useful framing for interviews: read scaling covers browsing, contention guards the purchase, real-time updates keep the screen honest, and blobs and writes are handled by their own patterns so they don’t crush the read path.</p>',
+ src:'Ticketmaster, YouTube and YouTube Top K breakdowns'},
+
+{s:'mm',topic:'Read moves in four more breakdowns',
+ stem:mm('Match each problem with the read move its breakdown lands on.',
+   ['Instagram','Yelp','News Aggregator','Metrics Monitoring'],
+   ['Average rating and rating count stored on the business row, updated in the same write as the review','Multi-resolution rollups, with the query service checking Redis for precomputed or partial results','Hybrid fan-out into a precomputed feed cache in Redis, with media served through a CDN','Precomputed regional feeds in Redis kept fresh by CDC, with read replicas per region']),
+ o:['P→3, Q→1, R→2, S→4','P→3, Q→1, R→4, S→2','P→4, Q→1, R→3, S→2','P→3, Q→2, R→4, S→1'],
+ a:'B',
+ sol:'<p>P→3, Q→1, R→4, S→2. The common thread: each one moves work from read time to write time (precomputed feeds, a stored average, a precomputed regional feed, rollups) and then serves the result from memory.</p>',
+ src:'Instagram, Yelp, News Aggregator and Metrics Monitoring breakdowns'},
+
+/* ===== Section 5: passages ===== */
+{s:'cp',p:'p1',topic:'Stampede',
+ stem:'<p>What happens at 19:10 if nothing protects the entry?</p>',
+ o:['Very little: Redis keeps serving the old value until a write replaces it','Every in-flight request misses at the same instant and goes to the database, about 200 times what it can handle','Read replicas absorb the load because they hold the same data','Redis refreshes the entry from the database shortly before it expires'],
+ a:'B',
+ sol:'<p>400,000 ÷ 2,000 = 200. Expiry is binary, so this is a textbook stampede. (C) The passage has no replicas, and a few replicas wouldn’t cover 400k/s anyway. (D) Read-through caches populate on a miss; refreshing early is something you must build (probabilistic early refresh or a background job).</p>',
+ src:'Scaling Reads article: stampede deep dive'},
+
+{s:'cp',p:'p1',topic:'Coalescing arithmetic',
+ stem:'<p>With request coalescing on all 40 instances, what is the most database queries this key can cause at 19:10?</p>',
+ o:['1','40','2,000','400,000'],
+ a:'B',
+ sol:'<p>Each instance sends one fetch per key and parks the rest on that in-flight request: 40 queries instead of 400,000. The article: backend load drops to exactly N, the number of app servers. To avoid even those 40, and the wait, refresh before expiry.</p>',
+ src:'Scaling Reads article: request coalescing'},
+
+{s:'cp',p:'p1',topic:'Immediate visibility across layers',
+ stem:'<p>Which plan gets the new venue in front of fans at 19:20 without races?</p>',
+ o:['Update the row, then delete the Redis key','Keep a version on the event row, increment it in the same transaction as the venue update, and build cache keys and the event JSON URL from it (<code>event:123:v43</code>), so stale copies in Redis and browsers become unreachable','Wait for the TTL to run out','Drop the TTL to 1 minute for every event'],
+ a:'B',
+ sol:'<p>Deleting (A) touches only Redis, leaves browser copies alive for up to 5 minutes, and is open to the late-reader race. Versioning routes around every layer at once: the page asks for the current version (a tiny, short-lived lookup; that’s the article’s “two lookups” cost) and then requests the new URL, which no stale cache holds. (C) leaves fans with the wrong address; (D) weakens caching for every event because of one change.</p>',
+ src:'Scaling Reads article: cache versioning'},
+
+{s:'cp',p:'p1',topic:'What not to cache',
+ stem:'<p>Which part of this page should never come from the long-TTL event entry?</p>',
+ o:['Venue capacity','Performer bio','Seat availability','Event date'],
+ a:'C',
+ sol:'<p>Availability changes every second during an on-sale. The breakdown serves it from the reservation sorted set and pushes changes over SSE; the purchase itself is decided by the Redis lock and a database transaction. Everything else here changes rarely and is cached hard.</p>',
+ src:'Ticketmaster breakdown; Scaling Reads article: Ticketmaster scenario'},
+
+{s:'cp',p:'p2',topic:'Sharded cache under a viral post',
+ stem:'<p>If the post cache is sharded by post ID, so each post lives on one instance, what happens?</p>',
+ o:['Load spreads evenly, about 50k/s per instance','One instance takes all 400k/s, four times its capacity, while the other seven sit mostly idle','DynamoDB absorbs the overflow','The fan-out workers slow down'],
+ a:'B',
+ sol:'<p>Hashing spreads keys, not traffic: one key means one owner. The breakdown notes the post cache inherits the same hot-key problem the post table had.</p>',
+ src:'FB News Feed breakdown: deep dive 3'},
+
+{s:'cp',p:'p2',topic:'Redundant cache arithmetic',
+ stem:'<p>If the 8 instances are instead redundant copies behind a load balancer, what are the per-instance load for this post and the worst-case number of database reads to warm it?</p>',
+ o:['400k/s and 1','50k/s and 8','50k/s and 1','100k/s and 8'],
+ a:'B',
+ sol:'<p>400k ÷ 8 = 50k/s, well inside each instance’s 100k/s. Each instance warms independently, so up to 8 misses instead of 1, which the breakdown accepts because it’s tiny next to uncached traffic.</p>',
+ src:'FB News Feed breakdown: deep dive 3'},
+
+{s:'cp',p:'p2',topic:'Hybrid fan-out',
+ stem:'<p>Why don’t the workers write the singer’s post into 90 million precomputed feeds?</p>',
+ o:['DynamoDB can’t hold that many rows','Fanning one post out on write would mean tens of millions of writes, so for a few huge accounts the design fans out on read and merges at read time, at the cost of a little extra work per feed request','The singer’s posts are private','Precomputed feeds can’t hold posts older than one minute'],
+ a:'B',
+ sol:'<p>The hybrid chooses per account: fan out on write for most, fan out on read for the giants, and merge in the Feed Service. The threshold is tunable. It’s a good example of mixing approaches instead of forcing one everywhere.</p>',
+ src:'FB News Feed breakdown: deep dive 2'},
+
+/* ===== Section 6: whole numbers ===== */
+{s:'int',topic:'Full table scans',
+ stem:'<p>Without an index, logging in by email scans the users table: 10 million rows at 200 bytes each. How many GB does one lookup read?</p>',
+ a:2,
+ sol:'<p>10,000,000 × 200 B = 2,000,000,000 B = 2 GB, for one login. Multiply by hundreds of concurrent logins and the database does nothing but read disk. An index on <code>email</code> turns it into a few index lookups.</p>',
+ src:'Scaling Reads article: slow-queries deep dive'},
+
+{s:'int',topic:'Coalescing',
+ stem:'<p>25 app servers each coalesce in-flight requests per key. 3 million users request the same missing key at once. What is the maximum number of backend fetches?</p>',
+ a:25,
+ sol:'<p>One per app server: 25. The user count doesn’t matter.</p>',
+ src:'Scaling Reads article: request coalescing'},
+
+{s:'int',topic:'Key fanout',
+ stem:'<p>A key draws 600,000 reads/s, and you want each copy at or below 50,000 reads/s. What is the minimum number of fanout copies?</p>',
+ a:12,
+ sol:'<p>600,000 ÷ 50,000 = 12 copies, each holding the full value, so 12 times the memory and 12 entries to clear on update.</p>',
+ src:'Scaling Reads article: cache key fanout'},
+
+{s:'int',topic:'Precomputed feed storage',
+ stem:'<p>Each precomputed feed stores 200 post IDs at 10 bytes per ID, for 2 billion users. How many TB is that?</p>',
+ a:4,
+ sol:'<p>200 × 10 B = 2 KB per user; 2 KB × 2 × 10⁹ = 4 × 10¹² B = 4 TB. The breakdown calls this quite reasonable, a fraction of a cent per user per month.</p>',
+ src:'FB News Feed breakdown: deep dive 1'},
+
+{s:'int',topic:'Availability query rate',
+ stem:'<p>Local delivery: 10M orders a day, about 100,000 seconds in a day, about 10 page views per purchase, and only 5% of shoppers buy. How many availability queries per second is that, in thousands?</p>',
+ a:20,
+ sol:'<p>10M ÷ 100k = 100 orders/s; × 10 pages = 1,000; ÷ 0.05 = 20,000 queries/s, so 20. The breakdown uses this number to justify the cache and replicas.</p>',
+ src:'Local Delivery Service breakdown: deep dive 2'},
+
+{s:'int',topic:'Rate limiter shards',
+ stem:'<p>A rate limiter must handle 1M checks/s, and one Redis shard handles about 100k checks/s. What is the minimum number of shards?</p>',
+ a:10,
+ sol:'<p>1,000,000 ÷ 100,000 = 10, matching the breakdown’s “10 Redis shards, each handling ~100k operations/second”.</p>',
+ src:'Rate Limiter breakdown: deep dive 1'},
+
+{s:'int',topic:'Bitly peak load',
+ stem:'<p>Bitly: 100M daily users, 5 redirects each per day. Use 100,000 seconds per day and a 100× peak factor. What is the peak redirect rate, in thousands per second?</p>',
+ a:500,
+ sol:'<p>100M × 5 = 500M a day; ÷ 100,000 s = 5,000/s on average; × 100 = 500,000/s, so 500. (Using 86,400 s, the breakdown gets about 5,787/s and about 600k/s at peak.) Either way it’s far past one database’s comfort zone, which is why the cache and CDN matter.</p>',
+ src:'Bitly breakdown: deep dive 2'},
+
+{s:'int',topic:'Distributed Cache sizing',
+ stem:'<p>The cache must hold 1,024 GB. Each node has 32 GB of RAM, of which about 24 GB is usable for data. How many nodes are needed for storage alone, rounding up?</p>',
+ a:43,
+ sol:'<p>1,024 ÷ 24 ≈ 42.7, so 43. Throughput needs far fewer: at about 20k requests/s per node, 100k/s needs 5, or about 8 with headroom. Provision for the larger of the two; the breakdown rounds up to about 50 nodes, which leaves plenty of read headroom.</p>',
+ src:'Distributed Cache breakdown: deep dive 2'},
+
+{s:'int',topic:'News Aggregator read capacity',
+ stem:'<p>During breaking news, one region sees about 10M concurrent users requesting feeds, and one Redis instance serves about 100k requests per second. Following the breakdown’s math, how many Redis instances is that?</p>',
+ a:100,
+ sol:'<p>10,000,000 ÷ 100,000 = 100: a master plus read replicas, all serving reads. The breakdown adds that most regions need far fewer, and replicas can be added during a spike and removed afterwards.</p>',
+ src:'News Aggregator breakdown: deep dive 5'}
+];
+
+/* ---------------- diagrams ---------------- */
+function rows(){
+  var data=[['(active, Jan 04)','green'],['(active, Mar 09)','green'],['(active, Jul 02)','green'],['(banned, Feb 01)','red'],['(banned, Jun 05)','red'],['(pending, Jan 02)','yellow'],['(pending, Apr 08)','yellow']];
+  var out=[];
+  data.forEach(function(d,i){
+    out.push({k:'box',id:'r'+i,x:40,y:48+i*40,w:250,h:32,t:d[0],f:d[1],fs:15});
+    out.push({k:'t',x:24,y:64+i*40,t:String(i+1),c:'muted',fs:14});
+  });
+  return out;
+}
+var DIAG={
+ index:{w:680,h:340,seed:11,alt:'Seven index entries sorted by status then date. Active rows form one block; dates after March 1 are scattered across rows 2, 3, 5 and 7.',
+  items:[{k:'t',x:40,y:24,t:'Index on (status, created_at), in B-tree order',anchor:'start',fs:17}].concat(rows()).concat([
+   {k:'line',p:[[300,50],[314,50],[314,166],[300,166]],c:'green'},
+   {k:'t',x:360,y:70,t:"status = 'active'",anchor:'start',c:'green',fs:17},
+   {k:'t',x:360,y:94,t:'one contiguous slice',anchor:'start',c:'green',fs:15},
+   {k:'arrow',a:[354,92],b:[320,108],c:'green'},
+   {k:'t',x:360,y:226,t:'created_at > Mar 01',anchor:'start',c:'red',fs:17},
+   {k:'t',x:360,y:250,t:'matches rows 2, 3, 5, 7:',anchor:'start',c:'red',fs:15},
+   {k:'t',x:360,y:272,t:'scattered, no single range',anchor:'start',c:'red',fs:15},
+   {k:'arrow',a:[352,240],b:[294,104],c:'red'},
+   {k:'arrow',a:[352,242],b:[294,144],c:'red'},
+   {k:'arrow',a:[352,246],b:[294,224],c:'red'},
+   {k:'arrow',a:[352,256],b:[294,304],c:'red'}
+  ])},
+ lag:{w:680,h:270,seed:21,alt:'User writes to the leader, then reads from a lagging follower and gets the old bio.',
+  items:[
+   {k:'box',id:'u',x:20,y:104,w:110,h:58,t:'User',f:'blue'},
+   {k:'box',id:'app',x:200,y:100,w:140,h:66,t:'App server',f:'violet'},
+   {k:'box',id:'ld',x:470,y:12,w:150,h:88,shape:'db',f:'green',t:'Leader'},
+   {k:'box',id:'fl',x:470,y:168,w:150,h:88,shape:'db',f:'yellow',t:'Follower'},
+   {k:'arrow',a:'u',b:'app',t:'PUT, then GET bio',lo:[0,-16],fs:13},
+   {k:'arrow',a:'app:r30',b:'ld',t:'1. write new bio',lo:[-8,-14]},
+   {k:'arrow',a:'app:r70',b:'fl',t:'2. read: old bio!',c:'red',lo:[-8,16]},
+   {k:'arrow',a:'ld:b',b:'fl:t',dash:true,t:'async copy,\nlagging',lo:[14,0],ta:'start',tc:'muted'},
+   {k:'t',x:24,y:244,t:'Reads may land on any follower',anchor:'start',c:'muted',fs:14}
+  ]},
+ shard:{w:680,h:252,seed:31,alt:'Left: leader and three replicas each holding 8 TB. Right: three shards each holding about 2.7 TB.',
+  items:[
+   {k:'frame',x:14,y:12,w:312,h:228,t:'Replicas: every node holds all 8 TB'},
+   {k:'box',id:'l1',x:40,y:50,w:110,h:76,shape:'db',f:'green',t:'Leader\n8 TB',fs:15},
+   {k:'box',id:'l2',x:190,y:50,w:110,h:76,shape:'db',f:'yellow',t:'Replica\n8 TB',fs:15},
+   {k:'box',id:'l3',x:40,y:150,w:110,h:76,shape:'db',f:'yellow',t:'Replica\n8 TB',fs:15},
+   {k:'box',id:'l4',x:190,y:150,w:110,h:76,shape:'db',f:'yellow',t:'Replica\n8 TB',fs:15},
+   {k:'arrow',a:'l1',b:'l2',dash:true},{k:'arrow',a:'l1',b:'l3',dash:true},{k:'arrow',a:'l1',b:'l4',dash:true},
+   {k:'frame',x:354,y:12,w:312,h:228,t:'Shards: each node holds a slice'},
+   {k:'box',id:'s1',x:372,y:62,w:88,h:110,shape:'db',f:'blue',t:'users\nA–H\n~2.7 TB',fs:14},
+   {k:'box',id:'s2',x:468,y:62,w:88,h:110,shape:'db',f:'blue',t:'users\nI–P\n~2.7 TB',fs:14},
+   {k:'box',id:'s3',x:564,y:62,w:88,h:110,shape:'db',f:'blue',t:'users\nQ–Z\n~2.7 TB',fs:14},
+   {k:'t',x:510,y:208,t:'smaller working set per node',c:'green',fs:15}
+  ]},
+ hot:{w:680,h:270,seed:41,alt:'Left: millions of readers hit one cache node for post:42 at 500k per second. Right: ten copies post:42:1 to :10 share the load at about 50k each.',
+  items:[
+   {k:'line',p:[[340,16],[340,256]],dash:true,c:'muted'},
+   {k:'t',x:170,y:26,t:'One key, one node',fs:17},
+   {k:'box',id:'c1',x:16,y:100,w:108,h:62,t:'Readers\n(millions)',f:'blue',fs:15},
+   {k:'box',id:'n',x:190,y:96,w:132,h:70,t:'Cache node\npost:42',f:'red'},
+   {k:'arrow',a:'c1',b:'n',t:'500k/s',c:'red',w:2.6,lo:[0,-14]},
+   {k:'t',x:256,y:194,t:'CPU and network maxed',c:'red',fs:15},
+   {k:'x',x:312,y:100,s:16},
+   {k:'t',x:510,y:26,t:'Fanout: ten copies',fs:17},
+   {k:'box',id:'c2',x:360,y:100,w:96,h:62,t:'Readers',f:'blue'},
+   {k:'box',id:'k1',x:530,y:46,w:128,h:30,t:'post:42:1',f:'green',fs:14},
+   {k:'box',id:'k2',x:530,y:86,w:128,h:30,t:'post:42:2',f:'green',fs:14},
+   {k:'box',id:'k3',x:530,y:126,w:128,h:30,t:'post:42:3',f:'green',fs:14},
+   {k:'t',x:594,y:168,t:'⋮',fs:18},
+   {k:'box',id:'k10',x:530,y:186,w:128,h:30,t:'post:42:10',f:'green',fs:14},
+   {k:'arrow',a:'c2',b:'k1:l'},{k:'arrow',a:'c2',b:'k2:l'},{k:'arrow',a:'c2',b:'k3:l'},{k:'arrow',a:'c2',b:'k10:l'},
+   {k:'t',x:486,y:62,t:'pick one\nat random',c:'muted',fs:13},
+   {k:'t',x:594,y:244,t:'about 50k/s per copy',c:'green',fs:15}
+  ]},
+ stampede:{w:680,h:270,seed:51,alt:'Database load over one hour. A red spike at 60 minutes when the TTL expires; green early refreshes in the last ten minutes; a blue background refresh at 50 minutes.',
+  cap:'Three ways the hour can end: a stampede (red), probabilistic early refresh (green) or a scheduled background refresh (blue).',
+  items:[
+   {k:'line',p:[[60,216],[648,216]],arrow:true},
+   {k:'line',p:[[60,216],[60,26]],arrow:true},
+   {k:'t',x:72,y:34,t:'database load',anchor:'start',c:'muted',fs:14},
+   {k:'t',x:60,y:238,t:'0',c:'muted',fs:14},
+   {k:'t',x:527,y:238,t:'50 min',c:'muted',fs:14},
+   {k:'t',x:620,y:238,t:'60 min',c:'muted',fs:14},
+   {k:'line',p:[[62,198],[606,198]]},
+   {k:'t',x:150,y:184,t:'normal misses',c:'muted',fs:14},
+   {k:'line',p:[[606,198],[620,50],[634,198]],c:'red',w:2.4},
+   {k:'t',x:600,y:40,t:'TTL expires: every request misses',anchor:'end',c:'red',fs:15},
+   {k:'line',p:[[527,212],[527,74]],dash:true,c:'blue'},
+   {k:'t',x:518,y:84,t:'background job refreshes here',anchor:'end',c:'blue',fs:14},
+   {k:'line',p:[[535,198],[535,194]],c:'green',w:2},{k:'line',p:[[548,198],[548,192]],c:'green',w:2},
+   {k:'line',p:[[560,198],[560,189]],c:'green',w:2},{k:'line',p:[[572,198],[572,185]],c:'green',w:2},
+   {k:'line',p:[[583,198],[583,180]],c:'green',w:2},{k:'line',p:[[594,198],[594,174]],c:'green',w:2},
+   {k:'line',p:[[602,198],[602,168]],c:'green',w:2},
+   {k:'t',x:372,y:128,t:'early refresh: a few requests refresh,\nodds rising as expiry nears',c:'green',fs:14},
+   {k:'arrow',a:[452,148],b:[556,182],c:'green',bend:-18}
+  ]},
+ race:{w:680,h:322,seed:61,alt:'Sequence: a slow reader misses and reads the old row; the writer updates the database and deletes the key; the reader then writes the old value back into the cache.',
+  items:[
+   {k:'box',id:'R',x:30,y:14,w:110,h:42,t:'Slow reader',f:'blue',fs:15},
+   {k:'box',id:'C',x:210,y:14,w:110,h:42,t:'Cache',f:'red'},
+   {k:'box',id:'D',x:390,y:14,w:110,h:42,t:'Database',f:'gray'},
+   {k:'box',id:'W',x:560,y:14,w:100,h:42,t:'Writer',f:'violet'},
+   {k:'line',p:[[85,58],[85,300]],dash:true,c:'muted'},
+   {k:'line',p:[[265,58],[265,300]],dash:true,c:'muted'},
+   {k:'line',p:[[445,58],[445,300]],dash:true,c:'muted'},
+   {k:'line',p:[[610,58],[610,300]],dash:true,c:'muted'},
+   {k:'arrow',a:[85,90],b:[265,90],t:'1. GET: miss'},
+   {k:'arrow',a:[85,128],b:[445,128],t:'2. read row (old venue)'},
+   {k:'arrow',a:[610,166],b:[445,166],t:'3. UPDATE venue'},
+   {k:'arrow',a:[610,204],b:[265,204],t:'4. DELETE key'},
+   {k:'t',x:92,y:186,t:'pauses',anchor:'start',c:'muted',fs:13},
+   {k:'arrow',a:[85,248],b:[265,248],t:'5. SET old value',c:'red',w:2.2},
+   {k:'t',x:175,y:290,t:'stale value cached until the TTL',c:'red',fs:15}
+  ]},
+ geo:{w:680,h:250,seed:71,alt:'A Sydney user calling a Virginia origin sees about 250 ms; a Sydney CDN edge answers shared responses in under 10 ms; the database is at 20 percent CPU.',
+  items:[
+   {k:'box',id:'u',x:20,y:92,w:120,h:60,t:'User in\nSydney',f:'blue'},
+   {k:'box',id:'e',x:250,y:170,w:150,h:60,t:'CDN edge\n(Sydney)',f:'green',fs:15},
+   {k:'box',id:'o',x:500,y:22,w:160,h:64,t:'API origin\n(Virginia)',f:'violet',fs:15},
+   {k:'box',id:'db',x:530,y:150,w:110,h:86,shape:'db',f:'gray',t:'DB\nCPU 20%',fs:15},
+   {k:'arrow',a:'u:r30',b:'o:l',t:'about 250 ms per round trip',c:'red',lo:[0,-14],fs:14},
+   {k:'arrow',a:'u:b',b:'e:l',t:'under 10 ms if shared',c:'green',lo:[-34,14],fs:14},
+   {k:'arrow',a:'e:r',b:'o:b25',dash:true,t:'only on a miss',lo:[34,10],fs:13,tc:'muted'},
+   {k:'arrow',a:'o:b80',b:'db:t',t:'3 ms',lo:[20,0],fs:13}
+  ]},
+ rl:{w:680,h:300,seed:81,alt:'Clients to API gateways, which hash the client ID to one of three Redis shards. Rules come from a config store and are cached locally. A read cache in front of the counters is crossed out.',
+  items:[
+   {k:'box',id:'cl',x:14,y:112,w:96,h:58,t:'Clients',f:'blue'},
+   {k:'box',id:'gw',x:156,y:100,w:156,h:82,t:'API gateways\n(token bucket)',f:'violet',fs:15},
+   {k:'box',id:'s1',x:398,y:22,w:132,h:50,t:'Redis shard 1',f:'red',fs:15},
+   {k:'box',id:'s2',x:398,y:116,w:132,h:50,t:'Redis shard 2',f:'red',fs:15},
+   {k:'box',id:'s3',x:398,y:210,w:132,h:50,t:'Redis shard 3',f:'red',fs:15},
+   {k:'box',id:'cfg',x:156,y:228,w:156,h:58,t:'Rules config\n(poll or push)',f:'yellow',fs:15},
+   {k:'box',id:'bad',x:572,y:110,w:98,h:62,t:'read cache\non counters',f:'gray',fs:14,dash:true},
+   {k:'arrow',a:'cl',b:'gw'},
+   {k:'arrow',a:'gw:r20',b:'s1:l'},
+   {k:'arrow',a:'gw:r50',b:'s2:l',t:'hash(clientId)',lo:[0,-12],fs:14},
+   {k:'arrow',a:'gw:r80',b:'s3:l'},
+   {k:'arrow',a:'cfg:t',b:'gw:b',dash:true},
+   {k:'t',x:150,y:206,t:'rules cached\nlocally',anchor:'end',c:'green',fs:13},
+   {k:'x',x:658,y:116,s:16},
+   {k:'t',x:621,y:200,t:'stale count =\nwrong allow/deny',c:'red',fs:14}
+  ]},
+ gopuff:{w:680,h:300,seed:91,alt:'Shopper to availability service, which checks Redis with a one-minute TTL, then region-partitioned read replicas on a miss. Buyer to order service, which runs a serializable transaction on the Postgres leader and expires affected cache keys.',
+  items:[
+   {k:'box',id:'sh',x:14,y:30,w:100,h:52,t:'Shopper',f:'blue'},
+   {k:'box',id:'av',x:156,y:30,w:150,h:52,t:'Availability\nservice',f:'blue',fs:15},
+   {k:'box',id:'rd',x:388,y:12,w:132,h:58,t:'Redis\nTTL ~1 min',f:'red',fs:15},
+   {k:'box',id:'rp',x:380,y:104,w:150,h:88,shape:'db',f:'yellow',t:'Read replicas\nby region',fs:15},
+   {k:'box',id:'ld',x:562,y:184,w:110,h:102,shape:'db',f:'green',t:'Postgres\nleader',fs:15},
+   {k:'box',id:'by',x:14,y:220,w:100,h:52,t:'Buyer',f:'blue'},
+   {k:'box',id:'os',x:156,y:220,w:150,h:52,t:'Order\nservice',f:'violet',fs:15},
+   {k:'arrow',a:'sh',b:'av'},
+   {k:'arrow',a:'av:r30',b:'rd:l',t:'1. cache',lo:[-6,-12],fs:14},
+   {k:'arrow',a:'av:b70',b:'rp:l',t:'2. on miss',lo:[-30,4],fs:14},
+   {k:'arrow',a:'by',b:'os'},
+   {k:'arrow',a:'os:r',b:'ld:l',t:'SERIALIZABLE txn',lo:[0,-14],fs:14},
+   {k:'line',p:[[306,236],[346,236],[346,52],[384,44]],dash:true,c:'red',arrow:true},
+   {k:'t',x:340,y:160,t:'expire\naffected\nkeys',anchor:'end',c:'red',fs:13},
+   {k:'arrow',a:'ld:t',b:'rp:r',dash:true,t:'replicate',lo:[22,-8],fs:13,tc:'muted'}
+  ]},
+ onsale:{w:680,h:290,seed:101,alt:'Fans at 400k reads per second hit 40 Event Service pods, which read Redis; on a miss they rebuild from the Events database sized for 2k queries per second. Seat updates are pushed to fans over SSE.',
+  items:[
+   {k:'box',id:'f',x:14,y:104,w:108,h:64,t:'Fans\n400k reads/s',f:'blue',fs:15},
+   {k:'box',id:'s',x:170,y:96,w:150,h:80,t:'40 Event\nService pods',f:'violet'},
+   {k:'box',id:'r',x:396,y:12,w:176,h:76,t:'Redis\neventId:eventObject\nTTL 1 h',f:'red',fs:14},
+   {k:'box',id:'d',x:410,y:170,w:150,h:100,shape:'db',f:'gray',t:'Events DB\n~2k queries/s',fs:15},
+   {k:'box',id:'sse',x:170,y:222,w:150,h:56,t:'Seat updates\nover SSE',f:'green',fs:15},
+   {k:'arrow',a:'f',b:'s'},
+   {k:'arrow',a:'s:r30',b:'r:l',t:'hit',lo:[-4,-12],fs:14},
+   {k:'arrow',a:'s:r70',b:'d:l',dash:true,c:'red',t:'miss: rebuild',lo:[-6,14],fs:14},
+   {k:'arrow',a:'sse:l',b:'f:b',dash:true,t:'push',lo:[-14,10],fs:14},
+   {k:'t',x:628,y:120,t:'written 18:10\nexpires 19:10',c:'muted',fs:14}
+  ]},
+ feed:{w:680,h:320,seed:111,alt:'Write path: new post to queue to fan-out workers to precomputed feeds, skipping flagged celebrities. Read path: feed service reads the precomputed part, merges celebrity posts, and hydrates post bodies from a redundant post cache backed by DynamoDB.',
+  items:[
+   {k:'box',id:'np',x:14,y:26,w:112,h:52,t:'New post',f:'blue'},
+   {k:'box',id:'q',x:160,y:26,w:100,h:52,t:'Queue',f:'gray'},
+   {k:'box',id:'wk',x:296,y:26,w:124,h:52,t:'Fan-out\nworkers',f:'violet',fs:15},
+   {k:'box',id:'pf',x:470,y:10,w:196,h:88,shape:'db',f:'yellow',t:'Precomputed feeds\n~200 IDs per user',fs:14},
+   {k:'arrow',a:'np',b:'q'},{k:'arrow',a:'q',b:'wk'},
+   {k:'arrow',a:'wk',b:'pf:l',t:'write IDs',lo:[0,-18],fs:13},
+   {k:'t',x:358,y:110,t:'skip flagged\ncelebrities',c:'red',fs:14},
+   {k:'box',id:'rq',x:14,y:204,w:112,h:52,t:'Feed request',f:'blue',fs:15},
+   {k:'box',id:'fs',x:164,y:204,w:132,h:52,t:'Feed service',f:'violet',fs:15},
+   {k:'box',id:'pc',x:352,y:198,w:156,h:64,t:'Redundant post\ncache × 8',f:'red',fs:15},
+   {k:'box',id:'db',x:560,y:190,w:108,h:96,shape:'db',f:'gray',t:'Posts\n(DynamoDB)',fs:14},
+   {k:'arrow',a:'rq',b:'fs'},
+   {k:'arrow',a:'fs:t',b:'pf:b30',t:'precomputed part',lo:[-62,4],fs:13},
+   {k:'arrow',a:'fs',b:'pc',t:'post bodies',lo:[0,-12],fs:13},
+   {k:'arrow',a:'pc',b:'db',dash:true,t:'miss',lo:[0,-12],fs:13},
+   {k:'t',x:230,y:298,t:'celebrity posts merged at read time',c:'green',fs:14}
+  ]},
+ bitly:{w:680,h:252,seed:121,alt:'With a 301 the browser may jump straight to the long-URL site, skipping our servers. With a 302 each click passes the CDN edge worker, the read service, Redis and the database, all of which we control.',
+  items:[
+   {k:'box',id:'ds',x:14,y:10,w:132,h:46,t:'Long-URL site',f:'gray',fs:15},
+   {k:'box',id:'br',x:14,y:122,w:132,h:60,t:'Browser',f:'blue'},
+   {k:'box',id:'ed',x:196,y:122,w:122,h:60,t:'CDN edge\nworker',f:'green',fs:15},
+   {k:'box',id:'rs',x:360,y:122,w:122,h:60,t:'Read\nservice',f:'violet',fs:15},
+   {k:'box',id:'rd',x:530,y:30,w:136,h:56,t:'Redis (LRU)',f:'red',fs:15},
+   {k:'box',id:'db',x:530,y:136,w:136,h:96,shape:'db',f:'gray',t:'URLs DB\nPK short_code',fs:14},
+   {k:'arrow',a:'br:t',b:'ds:b',dash:true,c:'red',t:'301 cached: skips us',lo:[10,0],ta:'start',fs:14},
+   {k:'arrow',a:'br',b:'ed',t:'302',c:'green',lo:[0,-12],fs:14},
+   {k:'arrow',a:'ed',b:'rs',t:'miss',lo:[0,-12],fs:13},
+   {k:'arrow',a:'rs:r30',b:'rd:l'},
+   {k:'arrow',a:'rs:r70',b:'db:l',dash:true,t:'miss',lo:[0,14],fs:13},
+   {k:'t',x:250,y:226,t:'with 302, every click passes layers we control',c:'green',fs:14}
+  ]},
+ topk:{w:680,h:232,seed:131,alt:'Clients call the Top-K service, which only reads the cache. A cron on a fixed interval queries the views database and warms the cache.',
+  items:[
+   {k:'box',id:'cl',x:14,y:92,w:100,h:52,t:'Clients',f:'blue'},
+   {k:'box',id:'sv',x:156,y:92,w:136,h:52,t:'Top-K service',f:'violet',fs:15},
+   {k:'box',id:'ca',x:338,y:86,w:176,h:64,t:'Cache\ntop-k:{window}:{ts}',f:'red',fs:14},
+   {k:'box',id:'cr',x:546,y:10,w:124,h:58,t:'Cron\n(fixed interval)',f:'yellow',fs:14},
+   {k:'box',id:'db',x:556,y:124,w:112,h:96,shape:'db',f:'gray',t:'Views DB\nwindow tables',fs:13},
+   {k:'arrow',a:'cl',b:'sv'},
+   {k:'arrow',a:'sv',b:'ca',t:'read only',lo:[0,-12],fs:13},
+   {k:'arrow',a:'cr:b',b:'db:t',t:'query',lo:[24,0],fs:13},
+   {k:'arrow',a:'cr:l',b:'ca:t70',t:'warm',lo:[-10,-10],fs:13},
+   {k:'t',x:226,y:196,t:'no request ever waits on the database',c:'green',fs:14}
+  ]}
+};
+
+/* ---------------- drawing ---------------- */
+var FILL={blue:'--d-blue',green:'--d-green',yellow:'--d-yellow',red:'--d-red',violet:'--d-violet',gray:'--d-gray',orange:'--d-orange'};
+var INK={ink:'--d-text',muted:'--d-muted',red:'--d-redink',green:'--d-greenink',blue:'--d-blueink'};
+function inkOf(c){return css(INK[c]||'--d-text');}
+
+function makePen(svg,seed){
+  var R=(window.rough&&window.rough.svg)?window.rough.svg(svg):null;
+  var ink=css('--d-stroke');
+  var base={roughness:1.15,bowing:1,stroke:ink,strokeWidth:1.5,seed:seed,fillStyle:'hachure',hachureGap:6,fillWeight:1.3,hachureAngle:-41};
+  function o(x){return Object.assign({},base,x||{});}
+  function put(n){svg.appendChild(n);return n;}
+  function plain(tag,attrs,opt){
+    var op=o(opt);
+    var a=Object.assign({fill:op.fill||'none',stroke:op.stroke,'stroke-width':op.strokeWidth,'stroke-linecap':'round','stroke-linejoin':'round'},attrs);
+    if(op.strokeLineDash)a['stroke-dasharray']=op.strokeLineDash.join(' ');
+    return put(el(tag,a));
+  }
+  return {
+    rect:function(x,y,w,h,opt){return R?put(R.rectangle(x,y,w,h,o(opt))):plain('rect',{x:x,y:y,width:w,height:h,rx:4},opt);},
+    ellipse:function(cx,cy,w,h,opt){return R?put(R.ellipse(cx,cy,w,h,o(opt))):plain('ellipse',{cx:cx,cy:cy,rx:w/2,ry:h/2},opt);},
+    poly:function(pts,opt){var op=Object.assign({},opt||{});delete op.fill;return R?put(R.linearPath(pts,o(op))):plain('polyline',{points:pts.map(function(p){return p.join(',');}).join(' ')},op);},
+    path:function(d,opt){return R?put(R.path(d,o(opt))):plain('path',{d:d},opt);}
+  };
+}
+function textBlock(svg,x,y,str,opt){
+  opt=opt||{};
+  var lines=String(str).split('\n'),fs=opt.fs||16,lh=fs*1.2;
+  var t=el('text',{x:x,y:y-(lines.length-1)*lh/2,'text-anchor':opt.anchor||'middle','dominant-baseline':'central'});
+  var st='font-size:'+fs+'px;fill:'+(opt.color||css('--d-text'))+';';
+  if(opt.halo)st+='paint-order:stroke;stroke:'+css('--paper')+';stroke-width:5px;stroke-linejoin:round;';
+  t.setAttribute('style',st);
+  lines.forEach(function(ln,i){var ts=el('tspan',{x:x,dy:i?lh:0});ts.textContent=ln;t.appendChild(ts);});
+  svg.appendChild(t);
+}
+function center(n){return [n.x+n.w/2,n.y+n.h/2];}
+function port(n,side){
+  var s=side.charAt(0),f=side.length>1?Number(side.slice(1))/100:0.5;
+  if(s==='l')return [n.x,n.y+n.h*f];
+  if(s==='r')return [n.x+n.w,n.y+n.h*f];
+  if(s==='t')return [n.x+n.w*f,n.y];
+  return [n.x+n.w*f,n.y+n.h];
+}
+function clip(n,to){
+  var c=center(n),dx=to[0]-c[0],dy=to[1]-c[1];
+  if(!dx&&!dy)return c;
+  var sx=dx?(n.w/2)/Math.abs(dx):Infinity,sy=dy?(n.h/2)/Math.abs(dy):Infinity,s=Math.min(sx,sy);
+  return [c[0]+dx*s,c[1]+dy*s];
+}
+function refPt(ref,nodes){
+  if(Array.isArray(ref))return ref;
+  var parts=ref.split(':'),n=nodes[parts[0]];
+  if(!n)throw new Error('Unknown node '+parts[0]);
+  return parts[1]?port(n,parts[1]):center(n);
+}
+function endPt(ref,other,nodes){
+  if(Array.isArray(ref))return ref;
+  var parts=ref.split(':'),n=nodes[parts[0]];
+  if(parts[1])return port(n,parts[1]);
+  return clip(n,refPt(other,nodes));
+}
+function head(pen,tip,ang,opt){
+  var L=11,s=0.45;
+  pen.poly([[tip[0]-L*Math.cos(ang-s),tip[1]-L*Math.sin(ang-s)],tip,[tip[0]-L*Math.cos(ang+s),tip[1]-L*Math.sin(ang+s)]],Object.assign({},opt,{strokeLineDash:undefined}));
+}
+function drawBox(pen,svg,b){
+  var opt={fill:b.f?css(FILL[b.f]):undefined};
+  if(b.dash)opt.strokeLineDash=[7,6];
+  var cy=b.y+b.h/2;
+  if(b.shape==='db'){
+    var ry=Math.min(12,b.h*0.15);
+    pen.path('M'+b.x+' '+(b.y+ry)+' L'+b.x+' '+(b.y+b.h-ry)+' A'+(b.w/2)+' '+ry+' 0 0 0 '+(b.x+b.w)+' '+(b.y+b.h-ry)+' L'+(b.x+b.w)+' '+(b.y+ry),opt);
+    pen.ellipse(b.x+b.w/2,b.y+ry,b.w,ry*2,opt);
+    cy=b.y+b.h/2+ry/2;
+  }else{
+    pen.rect(b.x,b.y,b.w,b.h,opt);
+  }
+  if(b.t)textBlock(svg,b.x+b.w/2,cy,b.t,{fs:b.fs||16});
+}
+function drawArrow(pen,svg,a,nodes){
+  var p1=endPt(a.a,a.b,nodes),p2=endPt(a.b,a.a,nodes);
+  var ang=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]),g=(a.gap!=null?a.gap:5);
+  if(!Array.isArray(a.a))p1=[p1[0]+Math.cos(ang)*g,p1[1]+Math.sin(ang)*g];
+  if(!Array.isArray(a.b))p2=[p2[0]-Math.cos(ang)*g,p2[1]-Math.sin(ang)*g];
+  var stroke=a.c?inkOf(a.c):css('--d-stroke');
+  var opt={stroke:stroke,strokeWidth:a.w||1.5};
+  if(a.dash)opt.strokeLineDash=[7,6];
+  var mid,hang;
+  if(a.bend){
+    var mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2,nx=-(p2[1]-p1[1]),ny=p2[0]-p1[0],Ln=Math.hypot(nx,ny)||1;
+    var cx=mx+nx/Ln*a.bend,cyy=my+ny/Ln*a.bend;
+    pen.path('M'+p1[0]+' '+p1[1]+' Q'+cx+' '+cyy+' '+p2[0]+' '+p2[1],opt);
+    mid=[0.25*p1[0]+0.5*cx+0.25*p2[0],0.25*p1[1]+0.5*cyy+0.25*p2[1]];
+    hang=Math.atan2(p2[1]-cyy,p2[0]-cx);
+  }else{
+    pen.poly([p1,p2],opt);
+    mid=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];
+    hang=ang;
+  }
+  head(pen,p2,hang,opt);
+  if(a.t){
+    var off=a.lo||[0,-12];
+    textBlock(svg,mid[0]+off[0],mid[1]+off[1],a.t,{fs:a.fs||14,anchor:a.ta||'middle',color:a.tc?inkOf(a.tc):(a.c?stroke:css('--d-text')),halo:true});
+  }
+}
+function renderDiagram(fig){
+  var spec=DIAG[fig.getAttribute('data-d')],svg=fig.querySelector('svg');
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  svg.setAttribute('viewBox','0 0 '+spec.w+' '+spec.h);
+  var pen=makePen(svg,spec.seed||7),nodes={};
+  spec.items.forEach(function(it){if(it.k==='box')nodes[it.id]=it;});
+  spec.items.forEach(function(it){
+    if(it.k==='frame'){pen.rect(it.x,it.y,it.w,it.h,{strokeLineDash:[5,6],stroke:css('--d-muted'),strokeWidth:1.2,roughness:0.8});textBlock(svg,it.x+12,it.y+18,it.t,{fs:14,anchor:'start',color:css('--d-muted')});}
+  });
+  spec.items.forEach(function(it){if(it.k==='box')drawBox(pen,svg,it);});
+  spec.items.forEach(function(it){
+    if(it.k==='arrow')drawArrow(pen,svg,it,nodes);
+    else if(it.k==='line'){
+      var o={stroke:it.c?inkOf(it.c):css('--d-stroke'),strokeWidth:it.w||1.5};
+      if(it.dash)o.strokeLineDash=[6,6];
+      pen.poly(it.p,o);
+      if(it.arrow){var n=it.p.length,a=it.p[n-2],b=it.p[n-1];head(pen,b,Math.atan2(b[1]-a[1],b[0]-a[0]),o);}
+    }else if(it.k==='x'){
+      var s=it.s/2,xo={stroke:inkOf('red'),strokeWidth:2.4};
+      pen.poly([[it.x-s,it.y-s],[it.x+s,it.y+s]],xo);pen.poly([[it.x+s,it.y-s],[it.x-s,it.y+s]],xo);
+    }
+  });
+  spec.items.forEach(function(it){
+    if(it.k==='t')textBlock(svg,it.x,it.y,it.t,{fs:it.fs||16,anchor:it.anchor||'middle',color:it.c?inkOf(it.c):css('--d-text'),halo:true});
+  });
+}
+function paintBubble(svg,letter,on,seed){
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  var omr=css('--omr'),pencil=css('--pencil');
+  svg.appendChild(el('circle',{cx:14,cy:14,r:12,fill:'none',stroke:omr,'stroke-width':1.3}));
+  var t=el('text',{x:14,y:14.6,'text-anchor':'middle','dominant-baseline':'central'});
+  t.setAttribute('style','font-size:12.5px;font-family:var(--serif);font-weight:600;fill:'+omr);
+  t.textContent=letter;svg.appendChild(t);
+  if(on){
+    if(window.rough&&window.rough.svg){
+      var R=window.rough.svg(svg);
+      svg.appendChild(R.circle(14,14,21,{fill:pencil,fillStyle:'zigzag',hachureGap:2.3,fillWeight:1.6,stroke:pencil,strokeWidth:1,roughness:1.4,seed:seed}));
+    }else svg.appendChild(el('circle',{cx:14,cy:14,r:10.5,fill:pencil}));
+  }
+}
+
+/* ---------------- state ---------------- */
+var KEY='scaling-reads-paper-v2';
+function load(){try{var raw=localStorage.getItem(KEY);if(raw){var s=JSON.parse(raw);return {sel:s.sel||{},done:s.done||{}};}}catch(e){}return {sel:{},done:{}};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+var state=load();
+var MAXPTS={sc:3,mc:4,ar:3,mm:3,cp:3,int:4};
+var byId={};
+QS.forEach(function(q,i){q.n=i+1;q.id='q'+(i+1);byId[q.id]=q;});
+var MAX=QS.reduce(function(s,q){return s+MAXPTS[q.s];},0);
+
+function hasAnswer(q){var v=state.sel[q.id];if(q.s==='mc')return !!(v&&v.length);return v!=null&&String(v).trim()!=='';}
+function grade(q){
+  var v=state.sel[q.id];
+  if(q.s==='mc'){
+    var bad=v.some(function(x){return q.a.indexOf(x)<0;});
+    if(bad)return {pts:-2,st:'bad'};
+    if(v.length===q.a.length)return {pts:4,st:'ok'};
+    return {pts:v.length,st:'part'};
+  }
+  if(q.s==='int'){return Number(String(v).trim())===q.a?{pts:4,st:'ok'}:{pts:0,st:'bad'};}
+  return v===q.a?{pts:3,st:'ok'}:{pts:-1,st:'bad'};
+}
+function fmt(n){return n>0?'+'+n:(n<0?'−'+Math.abs(n):'0');}
+function keyText(q){
+  if(q.s==='int')return String(q.a);
+  if(q.s==='mc')return q.a.map(function(x){return '('+x+')';}).join(', ');
+  return '('+q.a+')';
+}
+
+/* ---------------- build ---------------- */
+function diagHTML(key){
+  var d=DIAG[key];
+  return '<figure class="dg" data-d="'+key+'"><div class="dg-scroll"><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+d.alt.replace(/"/g,'&quot;')+'"></svg></div>'+(d.cap?'<figcaption>'+d.cap+'</figcaption>':'')+'</figure>';
+}
+function qHTML(q){
+  var multi=q.s==='mc';
+  var h='<article class="q" id="'+q.id+'" data-id="'+q.id+'">';
+  h+='<div class="q-head"><span class="q-num">Q.'+q.n+'</span><span class="q-topic">'+q.topic+'</span></div>';
+  h+='<div class="q-stem">'+q.stem+'</div>';
+  if(q.d)h+=diagHTML(q.d);
+  if(q.s==='int'){
+    h+='<div class="int"><label for="'+q.id+'-in">Your answer</label><input id="'+q.id+'-in" type="text" inputmode="numeric" autocomplete="off" maxlength="7"></div>';
+  }else{
+    var opts=q.s==='ar'?AR_OPTS:q.o;
+    h+='<div class="opts" role="'+(multi?'group':'radiogroup')+'" aria-label="Options for question '+q.n+'">';
+    opts.forEach(function(t,k){
+      var L=LET[k],isKey=multi?q.a.indexOf(L)>=0:q.a===L;
+      h+='<label class="opt"'+(isKey?' data-key':'')+'><input type="'+(multi?'checkbox':'radio')+'" name="'+q.id+'" value="'+L+'"><span class="bub" aria-hidden="true"><svg viewBox="0 0 28 28"></svg></span><span class="opt-t"><span class="sr">Option '+L+': </span>'+t+'</span></label>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="q-act"><button type="button" class="btn btn-check">Check answer</button><button type="button" class="btn-link btn-sol">Show solution</button><span class="note" aria-live="polite"></span></div>';
+  h+='<div class="verdict" aria-live="polite"></div>';
+  h+='<div class="sol"><p class="sol-key">Answer: '+keyText(q)+'</p>'+q.sol+'<p class="src">From: '+q.src+'</p></div>';
+  return h+'</article>';
+}
+function build(){
+  var root=document.getElementById('sections'),html='',seenP={};
+  SECTIONS.forEach(function(sec,si){
+    var qs=QS.filter(function(q){return q.s===sec.k;});
+    if(!qs.length)return;
+    sec.from=qs[0].n;sec.to=qs[qs.length-1].n;
+    html+='<section class="sec" id="sec-'+sec.k+'"><h2>Section '+(si+1)+'. '+sec.title+'</h2><p class="sec-rule">Q.'+sec.from+'–'+sec.to+'. '+sec.rule+'</p>';
+    qs.forEach(function(q){
+      if(q.p&&!seenP[q.p]){
+        seenP[q.p]=1;var p=PASSAGES[q.p];
+        html+='<div class="passage"><h3>'+p.title+'</h3>'+p.html+(p.d?diagHTML(p.d):'')+'</div>';
+      }
+      html+=qHTML(q);
+    });
+    html+='</section>';
+  });
+  root.innerHTML=html;
+  var il=document.getElementById('instr-list');
+  il.innerHTML=SECTIONS.map(function(sec,si){return '<li><b>Section '+(si+1)+'</b>, Q.'+sec.from+'–'+sec.to+': '+sec.short+'.</li>';}).join('');
+  document.querySelectorAll('.mx').forEach(function(n){n.textContent=MAX;});
+  document.getElementById('qcount').textContent=QS.length;
+  var pal=document.getElementById('pal'),ph='';
+  SECTIONS.forEach(function(sec,si){
+    ph+='<p class="pal-sec">Section '+(si+1)+'</p><div class="pal">';
+    QS.forEach(function(q){if(q.s===sec.k)ph+='<button type="button" data-go="'+q.id+'" aria-label="Go to question '+q.n+'">'+q.n+'</button>';});
+    ph+='</div>';
+  });
+  pal.innerHTML=ph;
+}
+
+/* ---------------- behaviour ---------------- */
+function artOf(id){return document.getElementById(id);}
+function paintQ(q){
+  var art=artOf(q.id);if(q.s==='int')return;
+  var v=state.sel[q.id];
+  art.querySelectorAll('.opt').forEach(function(lab,k){
+    var inp=lab.querySelector('input'),L=LET[k];
+    var on=q.s==='mc'?!!(v&&v.indexOf(L)>=0):v===L;
+    inp.checked=on;
+    paintBubble(lab.querySelector('svg'),L,on,q.n*10+k+3);
+  });
+}
+function applyDone(q){
+  var art=artOf(q.id),r=state.done[q.id];if(!r)return;
+  art.classList.add('locked','open');
+  art.querySelectorAll('input').forEach(function(i){i.disabled=true;});
+  if(q.s==='int'){
+    var box=art.querySelector('.int');box.classList.add(r.st==='ok'?'is-ok':(r.st==='bad'?'is-bad':'x'));
+  }else{
+    var v=state.sel[q.id];
+    art.querySelectorAll('.opt').forEach(function(lab,k){
+      var L=LET[k],isKey=lab.hasAttribute('data-key');
+      var chosen=q.s==='mc'?!!(v&&v.indexOf(L)>=0):v===L;
+      if(isKey)lab.classList.add('is-key');
+      else if(chosen)lab.classList.add('is-wrong');
+    });
+  }
+  var vd=art.querySelector('.verdict');
+  vd.className='verdict '+r.st;
+  if(r.st==='ok')vd.textContent='✓ Correct, '+fmt(r.pts);
+  else if(r.st==='part')vd.textContent='Partly right, '+fmt(r.pts);
+  else if(r.st==='bad')vd.textContent='✗ Not this one, '+fmt(r.pts);
+  else vd.textContent='Solution viewed, 0';
+  art.querySelector('.note').textContent='';
+}
+function updateSheet(){
+  var tot=0,att=0;
+  QS.forEach(function(q){
+    var r=state.done[q.id],b=document.querySelector('[data-go="'+q.id+'"]');
+    b.className='';
+    if(r){tot+=r.pts;if(r.st!=='seen')att++;b.classList.add(r.st);}
+    else if(hasAnswer(q))b.classList.add('ans');
+  });
+  document.getElementById('mk').textContent=tot;
+  document.getElementById('mk2').textContent=tot;
+  document.getElementById('att').textContent=att+' of '+QS.length+' checked';
+}
+function check(q,viaSolution){
+  if(state.done[q.id])return;
+  var art=artOf(q.id);
+  if(!hasAnswer(q)){
+    if(!viaSolution){art.querySelector('.note').textContent='Fill a bubble first, or open the solution.';return;}
+    state.done[q.id]={pts:0,st:'seen'};
+  }else state.done[q.id]=grade(q);
+  save();applyDone(q);updateSheet();
+}
+function renderAll(){
+  document.querySelectorAll('figure.dg').forEach(function(f){try{renderDiagram(f);}catch(e){console.error(e);}});
+  QS.forEach(paintQ);
+}
+
+build();
+QS.forEach(function(q){
+  if(q.s==='int'){var v=state.sel[q.id];if(v!=null)artOf(q.id).querySelector('input').value=v;}
+});
+renderAll();
+QS.forEach(applyDone);
+updateSheet();
+
+var secRoot=document.getElementById('sections');
+secRoot.addEventListener('change',function(e){
+  var inp=e.target,art=inp.closest('.q');if(!art)return;
+  var q=byId[art.getAttribute('data-id')];if(state.done[q.id]||q.s==='int')return;
+  if(q.s==='mc'){state.sel[q.id]=Array.prototype.map.call(art.querySelectorAll('input:checked'),function(x){return x.value;}).sort();}
+  else state.sel[q.id]=inp.value;
+  art.querySelector('.note').textContent='';
+  paintQ(q);save();updateSheet();
+});
+secRoot.addEventListener('input',function(e){
+  var inp=e.target;if(!inp.matches('.int input'))return;
+  var art=inp.closest('.q'),q=byId[art.getAttribute('data-id')];if(state.done[q.id])return;
+  state.sel[q.id]=inp.value.trim();art.querySelector('.note').textContent='';save();updateSheet();
+});
+secRoot.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.matches('.int input')){var art=e.target.closest('.q');check(byId[art.getAttribute('data-id')],false);}
+});
+secRoot.addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  var art=b.closest('.q');if(!art)return;
+  var q=byId[art.getAttribute('data-id')];
+  if(b.classList.contains('btn-check'))check(q,false);
+  else if(b.classList.contains('btn-sol'))check(q,true);
+});
+
+var sheet=document.getElementById('sheet'),scrim=document.getElementById('scrim');
+function setSheet(open){sheet.classList.toggle('open',open);scrim.classList.toggle('show',open);}
+document.getElementById('openSheet').addEventListener('click',function(){setSheet(true);});
+document.getElementById('closeSheet').addEventListener('click',function(){setSheet(false);});
+scrim.addEventListener('click',function(){setSheet(false);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')setSheet(false);});
+document.getElementById('pal').addEventListener('click',function(e){
+  var b=e.target.closest('[data-go]');if(!b)return;
+  setSheet(false);
+  var t=artOf(b.getAttribute('data-go'));
+  t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  var f=t.querySelector('input:not([disabled]), .btn-link');if(f)setTimeout(function(){f.focus({preventScroll:true});},350);
+});
+var rev=document.getElementById('revise');
+rev.addEventListener('click',function(){
+  var on=!document.body.classList.contains('revise');
+  document.body.classList.toggle('revise',on);rev.setAttribute('aria-pressed',on?'true':'false');
+  rev.textContent=on?'Hide unchecked solutions':'Show every solution';
+});
+document.getElementById('clear').addEventListener('click',function(){
+  if(!confirm('Clear every answer and mark on this sheet?'))return;
+  state={sel:{},done:{}};save();
+  document.querySelectorAll('.q').forEach(function(a){
+    a.classList.remove('locked','open');
+    a.querySelectorAll('input').forEach(function(i){i.disabled=false;if(i.type==='text')i.value='';});
+    a.querySelectorAll('.opt').forEach(function(l){l.classList.remove('is-key','is-wrong');});
+    var ib=a.querySelector('.int');if(ib)ib.className='int';
+    var vd=a.querySelector('.verdict');vd.className='verdict';vd.textContent='';
+    a.querySelector('.note').textContent='';
+  });
+  QS.forEach(paintQ);updateSheet();
+});
+
+var mq=window.matchMedia('(prefers-color-scheme: dark)');
+if(mq.addEventListener)mq.addEventListener('change',renderAll);
+new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>
+</body>
+</html>

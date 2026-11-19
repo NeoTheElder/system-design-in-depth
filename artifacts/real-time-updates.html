@@ -1,0 +1,2248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Real-time Updates: a JEE-style paper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Patrick+Hand&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --desk:#e7ebef; --paper:#ffffff; --ink:#1d2433; --ink-2:#535c6c; --rule:#d2d8df; --sol-bg:#f3f5fa; --code-bg:#eef1f5;
+  --omr:#b8215a; --omr-tint:#fcedf3; --pen:#1f3fa8; --pen-ink:#ffffff;
+  --ok:#1b7f3a; --ok-tint:#e3f3e7; --bad:#bc3424; --bad-tint:#fbe7e3; --part:#94600f; --part-tint:#fbf0d8; --rev:#5d42b0; --rev-tint:#eee8fb; --warn:#94600f;
+  --d-stroke:#1d2433; --d-text:#1d2433; --d-muted:#5f6878;
+  --d-blue:#d0ebff; --d-green:#d3f9d8; --d-yellow:#fff3bf; --d-red:#ffe3e3; --d-purple:#e5dbff; --d-orange:#ffe8cc; --d-gray:#eceff3;
+  --d-hred:#d6336c; --d-hblue:#1971c2; --d-hgreen:#2f9e44; --d-hpurple:#7048e8;
+  --serif:"Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --sans:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --desk:#151a21; --paper:#1d232c; --ink:#e6e9ee; --ink-2:#a8b0bc; --rule:#343c48; --sol-bg:#232b37; --code-bg:#2a323e;
+    --omr:#f06c9b; --omr-tint:#3a2230; --pen:#8ea6ff; --pen-ink:#141a2b;
+    --ok:#5cc98a; --ok-tint:#1d3326; --bad:#f2877a; --bad-tint:#3d2420; --part:#e6b35a; --part-tint:#382d17; --rev:#b39ddb; --rev-tint:#2c2540; --warn:#e6b35a;
+    --d-stroke:#dfe4ea; --d-text:#e6e9ee; --d-muted:#a1aab6;
+    --d-blue:#1c3a57; --d-green:#1f3d2a; --d-yellow:#463c14; --d-red:#4a2328; --d-purple:#33285a; --d-orange:#4a3319; --d-gray:#2b323c;
+    --d-hred:#ff8fab; --d-hblue:#74c0fc; --d-hgreen:#69db7c; --d-hpurple:#b197fc;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --desk:#151a21; --paper:#1d232c; --ink:#e6e9ee; --ink-2:#a8b0bc; --rule:#343c48; --sol-bg:#232b37; --code-bg:#2a323e;
+  --omr:#f06c9b; --omr-tint:#3a2230; --pen:#8ea6ff; --pen-ink:#141a2b;
+  --ok:#5cc98a; --ok-tint:#1d3326; --bad:#f2877a; --bad-tint:#3d2420; --part:#e6b35a; --part-tint:#382d17; --rev:#b39ddb; --rev-tint:#2c2540; --warn:#e6b35a;
+  --d-stroke:#dfe4ea; --d-text:#e6e9ee; --d-muted:#a1aab6;
+  --d-blue:#1c3a57; --d-green:#1f3d2a; --d-yellow:#463c14; --d-red:#4a2328; --d-purple:#33285a; --d-orange:#4a3319; --d-gray:#2b323c;
+  --d-hred:#ff8fab; --d-hblue:#74c0fc; --d-hgreen:#69db7c; --d-hpurple:#b197fc;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:calc(env(safe-area-inset-top, 0px) + 78px); -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--desk); color:var(--ink); font:400 18px/1.62 var(--serif); text-rendering:optimizeLegibility}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top, 0px); z-index:10; background:var(--paper)}
+:focus-visible{outline:2.5px solid var(--pen); outline-offset:2px}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+a{color:var(--pen); text-underline-offset:2px}
+code{font:0.84em/1.4 var(--mono); background:var(--code-bg); padding:1px 5px; border-radius:4px; overflow-wrap:anywhere}
+
+/* top bar */
+.bar{position:sticky; top:env(safe-area-inset-top, 0px); z-index:20; background:var(--paper); border-bottom:1px solid var(--rule); font-family:var(--sans)}
+.bar-in{max-width:1140px; margin:0 auto; padding:10px 20px; display:flex; align-items:center; gap:16px}
+.bar-title{font-weight:700; font-size:16px; margin-right:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+.tally{display:flex; gap:16px; font-size:15px; color:var(--ink-2); white-space:nowrap}
+.tally b{color:var(--ink); font-variant-numeric:tabular-nums}
+.btn{font:700 15px/1 var(--sans); padding:10px 16px; border-radius:6px; border:1.5px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer}
+.btn:hover:not(:disabled){background:var(--desk)}
+.btn.primary{background:var(--ink); color:var(--paper)}
+.btn.primary:hover:not(:disabled){opacity:.88; background:var(--ink)}
+.btn:disabled{opacity:.38; cursor:not-allowed}
+.btn.sm{padding:7px 12px; font-size:14px}
+.btn.armed{border-color:var(--bad); color:var(--bad)}
+.only-m{display:none}
+
+/* cover */
+.wrap{max-width:1140px; margin:0 auto; padding:0 20px}
+.cover{padding:44px 0 10px; display:grid; grid-template-columns:minmax(0, 1fr); gap:20px}
+.cover h1{font:600 clamp(38px, 6.4vw, 60px)/1.02 var(--serif); letter-spacing:-0.015em; margin:0; max-width:14ch}
+.cover .lede{font-size:20px; line-height:1.55; color:var(--ink-2); margin:0; max-width:60ch}
+.hero{margin:0; background:var(--paper); border:1px solid var(--rule); border-radius:8px; padding:14px 18px 6px; max-width:760px; overflow-x:auto}
+.hero figcaption{font:400 14px/1.5 var(--sans); color:var(--ink-2); padding:6px 2px 8px}
+
+/* rules */
+.rules{display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr); gap:28px; margin:30px 0 8px; padding:22px 24px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; max-width:900px}
+.rules h2{font:700 17px/1.3 var(--sans); margin:0 0 10px}
+.rules table{border-collapse:collapse; width:100%; font:400 15px/1.4 var(--sans)}
+.rules th,.rules td{text-align:left; padding:7px 10px 7px 0; border-bottom:1px solid var(--rule); vertical-align:top}
+.rules thead th{color:var(--ink-2); font-weight:400}
+.rules td.m{font-variant-numeric:tabular-nums; white-space:nowrap}
+.rules ul{margin:0; padding-left:18px; font:400 15px/1.55 var(--sans); color:var(--ink-2)}
+.rules li+li{margin-top:6px}
+
+/* filters */
+.filters{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:22px 0 8px; font-family:var(--sans)}
+.chip{font:600 14px/1 var(--sans); padding:8px 12px; border-radius:999px; border:1px solid var(--rule); background:var(--paper); color:var(--ink); cursor:pointer}
+.chip .cn{color:var(--ink-2); font-weight:400; margin-left:2px}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.chip[aria-pressed="true"] .cn{color:var(--paper); opacity:.75}
+.chip-sep{font-size:13px; color:var(--ink-2); margin:0 2px 0 8px}
+.chip-sep:first-of-type{margin-left:6px}
+
+/* layout */
+.layout{display:grid; grid-template-columns:minmax(0, 1fr) 252px; gap:28px; align-items:start; padding-bottom:90px}
+#paper{min-width:0; max-width:820px}
+.part-h{margin:34px 0 4px}
+.part-h h2{font:600 34px/1.15 var(--serif); margin:0 0 6px; letter-spacing:-0.01em}
+.part-h p{margin:0; font:400 16px/1.55 var(--sans); color:var(--ink-2); max-width:66ch}
+.sec-h{margin:30px 0 14px; padding-top:14px; border-top:2px solid var(--ink)}
+.sec-h h3{font:600 24px/1.25 var(--serif); margin:0 0 4px}
+.sec-h p{margin:0; font:400 15px/1.5 var(--sans); color:var(--ink-2)}
+
+/* passage */
+.psg{background:var(--paper); border:1.5px dashed var(--omr); border-radius:8px; padding:18px 22px; margin:0 0 16px}
+.psg h3{font:700 15px/1.3 var(--sans); color:var(--omr); margin:0 0 8px}
+.psg p{margin:0 0 10px}
+
+/* question */
+.q{background:var(--paper); border:1px solid var(--rule); border-radius:8px; padding:20px 24px 18px; margin:0 0 16px}
+.q.is-correct{box-shadow:inset 4px 0 0 var(--ok)}
+.q.is-partial{box-shadow:inset 4px 0 0 var(--part)}
+.q.is-wrong{box-shadow:inset 4px 0 0 var(--bad)}
+.q.is-revealed{box-shadow:inset 4px 0 0 var(--rev)}
+.q-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font:400 14px/1.4 var(--sans); color:var(--ink-2); margin-bottom:8px}
+.q-no{font-weight:700; font-size:19px; color:var(--omr); font-variant-numeric:tabular-nums}
+.q-tag{border:1px solid var(--rule); border-radius:4px; padding:1px 7px; color:var(--ink)}
+.q-marks{margin-left:auto; font-variant-numeric:tabular-nums}
+.q-stem p{margin:0 0 10px}
+.hint{font:400 14px/1.4 var(--sans); color:var(--ink-2); margin:4px 0 6px}
+dl.ar{display:grid; grid-template-columns:max-content minmax(0, 1fr); gap:8px 16px; margin:8px 0 14px; padding:12px 14px; background:var(--sol-bg); border-radius:6px}
+dl.ar dt{font:700 14px/1.6 var(--sans); color:var(--ink-2); padding-top:2px}
+dl.ar dd{margin:0}
+.match{display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:14px; margin:8px 0 14px}
+.mt{border-collapse:collapse; width:100%; font-size:16px; line-height:1.45}
+.mt thead th{font:700 14px/1.3 var(--sans); text-align:left; color:var(--ink-2); padding:0 0 6px; border-bottom:1.5px solid var(--ink)}
+.mt tbody th{font:700 15px var(--sans); color:var(--omr); padding:7px 10px 7px 0; vertical-align:top; width:1.6em; text-align:left}
+.mt td{padding:7px 0; border-bottom:1px solid var(--rule); vertical-align:top}
+.q,.psg{--surf:var(--paper)} .sol{--surf:var(--sol-bg)}
+.dg{margin:12px 0 14px; overflow-x:auto;
+  background:linear-gradient(to right, var(--surf) 30%, transparent) 0 0, linear-gradient(to left, var(--surf) 30%, transparent) 100% 0, radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.2), transparent) 0 0, radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), transparent) 100% 0;
+  background-repeat:no-repeat; background-size:40px 100%, 40px 100%, 14px 100%, 14px 100%; background-attachment:local, local, scroll, scroll}
+.dg figcaption{font:400 14px/1.45 var(--sans); color:var(--ink-2); margin-top:4px}
+
+/* OMR options */
+.opts{display:flex; flex-direction:column; gap:4px; margin:6px 0 8px}
+.opt{display:flex; gap:14px; align-items:flex-start; width:100%; text-align:left; padding:9px 12px; border-radius:6px; border:1px solid transparent; background:none; color:inherit; font:400 17px/1.5 var(--serif); cursor:pointer}
+.opt:hover:not(:disabled){background:var(--omr-tint)}
+.opt:disabled{cursor:default; color:inherit}
+.bub{flex:none; width:30px; height:30px; margin-top:-2px; border-radius:50%; border:1.6px solid var(--omr); color:var(--omr); display:grid; place-items:center; font:700 14px/1 var(--sans); transition:background-color .15s, color .15s, border-color .15s}
+.opt[aria-checked="true"] .bub{background:var(--pen); border-color:var(--pen); color:var(--pen-ink)}
+.opt.is-key{background:var(--ok-tint); border-color:var(--ok)}
+.opt.is-key .bub{border-color:var(--ok); color:var(--ok)}
+.opt.is-key[aria-checked="true"] .bub{background:var(--ok); color:var(--paper)}
+.opt.is-wrong{background:var(--bad-tint); border-color:var(--bad)}
+.opt.is-wrong .bub{background:var(--bad); border-color:var(--bad); color:var(--paper)}
+.num{display:flex; align-items:flex-end; gap:10px; margin:8px 0 10px; font-family:var(--sans)}
+.num label{display:flex; flex-direction:column; gap:4px}
+.num-l{font-size:14px; color:var(--ink-2)}
+.num input{font:700 20px/1.2 var(--sans); width:10ch; padding:8px 10px; border:1.6px solid var(--omr); border-radius:5px; background:var(--paper); color:var(--ink); font-variant-numeric:tabular-nums}
+.num input.is-ok{border-color:var(--ok); background:var(--ok-tint)}
+.num input.is-bad{border-color:var(--bad); background:var(--bad-tint)}
+.unit{font-size:15px; color:var(--ink-2); padding-bottom:10px}
+.q-actions{display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; margin-top:12px}
+.verdict{font:700 15px/1.3 var(--sans)}
+.v-ok{color:var(--ok)} .v-part{color:var(--part)} .v-bad{color:var(--bad)} .v-rev{color:var(--rev)} .v-warn{color:var(--warn)}
+.sol{margin-top:16px; padding:14px 20px 6px; background:var(--sol-bg); border-left:3px solid var(--pen); border-radius:0 8px 8px 0; font-size:17px}
+.sol h4{font:700 15px/1.3 var(--sans); margin:0 0 4px; color:var(--pen)}
+.sol .sol-key{font:700 15px/1.4 var(--sans); margin:0 0 10px}
+.sol p{margin:0 0 10px}
+
+/* palette */
+.pal{position:sticky; top:calc(env(safe-area-inset-top, 0px) + 72px); max-height:calc(100vh - 96px); overflow:auto; background:var(--paper); border:1px solid var(--rule); border-radius:8px; padding:14px 14px 10px; font-family:var(--sans)}
+.pal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
+.pal-head h2{font:700 15px/1.3 var(--sans); margin:0}
+.pal-l{font-size:13px; color:var(--ink-2); margin:10px 0 5px}
+.pal-grid{display:grid; grid-template-columns:repeat(5, 1fr); gap:6px}
+.pb{aspect-ratio:1; min-height:34px; font:700 13px/1 var(--sans); border:1px solid var(--rule); background:var(--paper); color:var(--ink); border-radius:5px; cursor:pointer; font-variant-numeric:tabular-nums; padding:0}
+.pb:hover{border-color:var(--ink)}
+.pb.s-touched{border:2px solid var(--pen); color:var(--pen)}
+.pb.s-correct{background:var(--ok); border-color:var(--ok); color:var(--paper)}
+.pb.s-partial{background:var(--part); border-color:var(--part); color:var(--paper)}
+.pb.s-wrong{background:var(--bad); border-color:var(--bad); color:var(--paper)}
+.pb.s-revealed{background:var(--rev); border-color:var(--rev); color:var(--paper)}
+.legend{list-style:none; margin:14px 0 4px; padding:10px 0 0; border-top:1px solid var(--rule); font-size:13px; color:var(--ink-2); display:grid; gap:6px}
+.legend li{display:flex; align-items:center; gap:8px}
+.legend .pb{width:16px; min-height:16px; height:16px; aspect-ratio:auto; display:inline-block; cursor:default; border-radius:3px}
+
+@media (max-width: 980px){
+  .layout{grid-template-columns:minmax(0, 1fr)}
+  #paper{max-width:none}
+  .only-m{display:inline-block}
+  .pal{position:fixed; left:0; right:0; bottom:0; top:auto; z-index:30; max-height:72vh; border-radius:14px 14px 0 0; box-shadow:0 -8px 30px rgba(0,0,0,.25); padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px))}
+  .pal:not(.open){display:none}
+  .pal-grid{grid-template-columns:repeat(auto-fill, minmax(40px, 1fr))}
+  .rules{grid-template-columns:minmax(0, 1fr)}
+}
+@media (max-width: 640px){
+  body{font-size:17px}
+  .bar-in{gap:10px; padding:9px 14px}
+  .bar-title{font-size:15px}
+  .tally{gap:10px; font-size:14px}
+  .tally .t-rev{display:none}
+  .wrap{padding:0 14px}
+  .q{padding:16px 16px 14px}
+  .opt{padding:8px 6px; gap:12px; font-size:16.5px}
+  .match{grid-template-columns:minmax(0, 1fr)}
+  .q-marks{margin-left:0}
+  .rules{padding:18px}
+}
+@media (max-width: 520px){
+  .bar-title{display:none}
+  .tally{margin-right:auto}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in">
+    <div class="bar-title">Real-time Updates paper</div>
+    <div class="tally">
+      <span>Marks <b id="t-marks">0</b> of <b id="t-max">0</b></span>
+      <span>Checked <b id="t-att">0</b></span>
+      <span class="t-rev">Shown <b id="t-rev">0</b></span>
+    </div>
+    <button type="button" class="btn sm only-m" id="palbtn" aria-expanded="false" aria-controls="pal">Palette</button>
+    <button type="button" class="btn sm" id="reset">Reset</button>
+  </div>
+</header>
+<main class="wrap">
+  <section class="cover">
+    <h1>Real-time Updates</h1>
+    <p class="lede">A JEE-style paper on getting changes from servers to clients, and from wherever they happen to the right server. Part A tests the pattern itself; Part B tests it inside eleven interview problems, from Ticketmaster to ChatGPT. Part C goes deeper into routing, coordination and failure, and carries the ideas into other systems.</p>
+    <figure class="hero"><div class="dg-c" data-dg="hero"></div><figcaption>Every question here is about one of these two hops, or about choosing not to need them.</figcaption></figure>
+  </section>
+  <section class="rules" aria-label="Instructions">
+    <div>
+      <h2>Marking scheme</h2>
+      <table>
+        <thead><tr><th>Question type</th><th>Right</th><th>Wrong</th></tr></thead>
+        <tbody>
+          <tr><td>Single correct, assertion and reason, match the columns</td><td class="m">+4</td><td class="m">−1</td></tr>
+          <tr><td>One or more correct (+1 per correct option picked, if no wrong option is picked)</td><td class="m">+4</td><td class="m">−2</td></tr>
+          <tr><td>Numerical answer</td><td class="m">+4</td><td class="m">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h2>How it works</h2>
+      <ul>
+        <li>Check answer locks your response, scores it and opens the solution.</li>
+        <li>Show solution reveals the answer without scoring it, for zero marks.</li>
+        <li>Use the palette to jump around; the filters narrow the paper to one section or problem.</li>
+        <li>Your answers stay in this browser, so you can come back later.</li>
+      </ul>
+    </div>
+  </section>
+  <nav class="filters" id="filters" aria-label="Filter by section"></nav>
+  <div class="layout">
+    <div id="paper"></div>
+    <aside class="pal" id="pal" aria-label="Question palette"></aside>
+  </div>
+</main>
+<script>
+window.PARTS = {
+  A: { title: "Part A. The pattern", note: "Protocols for the first hop, triggers for the second, and the failure modes interviewers like to probe." },
+  B: { title: "Part B. The eleven problems", note: "Each section applies the pattern inside one interview problem. Where a breakdown’s full text isn’t public, questions build on its published requirements and scale, and on the pattern itself." }
+};
+
+window.SECTIONS = [
+  { id: "a1", part: "A", short: "Single correct", title: "Section 1. Single correct answer", note: "Exactly one option is correct. +4 for the right answer, −1 for a wrong one." },
+  { id: "a2", part: "A", short: "One or more", title: "Section 2. One or more correct answers", note: "One or more options are correct. +4 for exactly the right set; +1 per correct option picked if you pick no wrong one; −2 if you pick any wrong option." },
+  { id: "a3", part: "A", short: "Assertion and reason", title: "Section 3. Assertion and reason", note: "Decide whether each statement is true and whether the reason explains the assertion. +4 / −1." },
+  { id: "a4", part: "A", short: "Matching", title: "Section 4. Match the columns", note: "Pair List I with List II and pick the option with every pairing right. +4 / −1." },
+  { id: "a5", part: "A", short: "Numerical", title: "Section 5. Numerical answer", note: "Type a number; the unit is shown beside the box. +4 within the stated tolerance, 0 otherwise." },
+  { id: "a6", part: "A", short: "Paragraph", title: "Section 6. Paragraph-based questions", note: "Read the scenario, then answer the three questions that follow it." },
+  { id: "tm", part: "B", short: "Ticketmaster", title: "Ticketmaster", note: "Seat maps that go stale in seconds, and a waiting room in front of the booking page." },
+  { id: "ub", part: "B", short: "Uber", title: "Uber", note: "Two million location writes a second inbound, and ride offers that must reach a phone in someone’s cup holder." },
+  { id: "wa", part: "B", short: "WhatsApp", title: "WhatsApp", note: "WebSockets at billions of users, at-most-once pub/sub, and the inbox that makes it safe." },
+  { id: "rh", part: "B", short: "Robinhood", title: "Robinhood", note: "Live prices fanned out per symbol, and order updates driven by the exchange’s trade feed." },
+  { id: "gd", part: "B", short: "Google Docs", title: "Google Docs", note: "Character-level edits, cursors and presence, and why each document lives on one server." },
+  { id: "sv", part: "B", short: "Strava", title: "Strava", note: "Offline-first tracking, and live sharing whose freshness is set by the athlete’s phone." },
+  { id: "oa", part: "B", short: "Online Auction", title: "Online Auction", note: "Strongly consistent bids, eventually consistent displays." },
+  { id: "fl", part: "B", short: "FB Live Comments", title: "FB Live Comments", note: "Read-heavy SSE, viewer co-location, and what changes when a stream goes mega." },
+  { id: "oc", part: "B", short: "Online Chess", title: "Online Chess", note: "Three-minute blitz, 500,000 concurrent games, server-owned clocks." },
+  { id: "cg", part: "B", short: "ChatGPT", title: "ChatGPT", note: "Token streaming, time to first token, and streams that survive reconnects." },
+  { id: "fs", part: "B", short: "Flash Sale", title: "Flash Sale", note: "10,000 pairs, tens of millions of buyers, and a waiting room that has to be fair." },
+  { id: "xx", part: "B", short: "Across problems", title: "Across all eleven", note: "Pull the problems together." }
+];
+
+window.HERO = {
+  w: 680, h: 196, seed: 5, minw: 0,
+  alt: "Two hops. An update source notifies a server (hop 2); the server delivers the update to the client (hop 1).",
+  el: [
+    { t: "box", id: "src", x: 10, y: 46, w: 150, h: 72, label: "Update\nsource", fill: "orange" },
+    { t: "box", id: "srv", x: 265, y: 46, w: 150, h: 72, label: "Server", fill: "purple" },
+    { t: "box", id: "cli", x: 520, y: 46, w: 150, h: 72, label: "Client", fill: "blue" },
+    { t: "arrow", from: "src", to: "srv", label: "hop 2", sc: "hred", sw: 2.2, lfs: 16 },
+    { t: "arrow", from: "srv", to: "cli", label: "hop 1", sc: "hblue", sw: 2.2, lfs: 16 },
+    { t: "text", x: 212, y: 160, s: "How does the server\nlearn about the change?", fs: 15, c: "muted" },
+    { t: "text", x: 467, y: 160, s: "How does the client\nhear about it?", fs: 15, c: "muted" }
+  ]
+};
+
+window.PASSAGES = {
+  pulse: {
+    text: "**Pulse** is a sports app. On a busy evening, 5 million viewers are spread across 20,000 live matches, each viewer following one match. A score ingest service receives an official update for each match about once every 20 s and writes it to a database. Viewers never send anything except occasional reactions, which go to a separate service over ordinary HTTP.\n\nEach endpoint server can hold at most 100,000 open connections and push at most 4,000 events per second. Product wants every viewer to see each score change within about a second.",
+    d: {
+      w: 680, h: 258, seed: 21, alt: "Score feed to ingest service, which writes to a database. A box marked with a question mark sits between the ingest service and three endpoint servers.",
+      el: [
+        { t: "box", id: "feed", x: 8, y: 24, w: 120, h: 58, label: "Official\nscore feed", fill: "gray", fs: 16 },
+        { t: "box", id: "ing", x: 178, y: 24, w: 130, h: 58, label: "Score ingest", fill: "orange", fs: 16 },
+        { t: "db", id: "db", x: 178, y: 150, w: 130, h: 98, label: "Scores DB", fill: "green", fs: 16 },
+        { t: "box", id: "q", x: 352, y: 94, w: 110, h: 74, label: "?", fs: 40, fill: "yellow", hs: true },
+        { t: "box", id: "e1", x: 506, y: 14, w: 166, h: 52, label: "Endpoint server 1", fill: "purple", fs: 16 },
+        { t: "box", id: "e2", x: 506, y: 105, w: 166, h: 52, label: "Endpoint server 2", fill: "purple", fs: 16 },
+        { t: "box", id: "e3", x: 506, y: 196, w: 166, h: 52, label: "Endpoint server n", fill: "purple", fs: 16 },
+        { t: "arrow", from: "feed", to: "ing" },
+        { t: "arrow", from: "ing", to: "db", label: "write", lo: [26, 0] },
+        { t: "arrow", from: "ing", to: "q" },
+        { t: "arrow", from: "q", to: "e1" },
+        { t: "arrow", from: "q", to: "e2" },
+        { t: "arrow", from: "q", to: "e3" }
+      ]
+    }
+  }
+};
+
+window.QUESTIONS = [];
+var Q = window.QUESTIONS;
+
+/* ---------------- Section 1: single correct ---------------- */
+Q.push({
+  k: "a1-1", sec: "a1", type: "single", tag: "SSE",
+  q: "An engineer hand-rolls an SSE endpoint over HTTP/1.1. Clients connect and receive the first event, then the browser treats the response as finished and the stream goes quiet. Which response header is the most likely culprit?",
+  o: ["`Content-Type: text/event-stream`", "`Cache-Control: no-cache`", "`Content-Length: 512`", "`Connection: keep-alive`"],
+  ans: 2,
+  sol: "A stream has no known end, so its size can’t be declared up front. With `Content-Length: 512` the client reads exactly 512 bytes and considers the body complete, so the stream is effectively over after the first event or two. In HTTP/1.1 an open-ended body is sent with `Transfer-Encoding: chunked`, which lets the server keep writing chunks of unknown number and size.\n\nThe other three headers are exactly what a correct SSE response sends: `text/event-stream` is the media type `EventSource` expects, `no-cache` stops intermediaries from caching the stream, and keep-alive holds the TCP connection open. (HTTP/2 has no chunked encoding; the body is a sequence of DATA frames, but the rule is the same: no fixed length.)"
+});
+Q.push({
+  k: "a1-2", sec: "a1", type: "single", tag: "Load balancers",
+  q: "The figure shows the packets exchanged when a browser fetches a page through a load balancer. Which statement about this load balancer is correct?",
+  d: {
+    w: 640, h: 372, seed: 31, alt: "Sequence diagram with three lifelines. Client and load balancer complete a TCP handshake; the load balancer completes a separate handshake with the server; the HTTP request and response are relayed.",
+    el: [
+      { t: "box", x: 30, y: 10, w: 100, h: 40, label: "Client", fill: "blue", fs: 16 },
+      { t: "box", x: 255, y: 10, w: 130, h: 40, label: "Load balancer", fill: "gray", fs: 16 },
+      { t: "box", x: 510, y: 10, w: 100, h: 40, label: "Server", fill: "purple", fs: 16 },
+      { t: "line", pts: [[80, 50], [80, 362]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "line", pts: [[320, 50], [320, 362]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "line", pts: [[560, 50], [560, 362]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "arrow", from: [82, 82], to: [318, 82], label: "SYN", lo: [0, -11], sc: "hblue" },
+      { t: "arrow", from: [318, 108], to: [82, 108], label: "SYN-ACK", lo: [0, -11], sc: "hblue" },
+      { t: "arrow", from: [82, 134], to: [318, 134], label: "ACK", lo: [0, -11], sc: "hblue" },
+      { t: "arrow", from: [82, 164], to: [318, 164], label: "HTTP GET /", lo: [0, -11] },
+      { t: "arrow", from: [322, 194], to: [558, 194], label: "SYN", lo: [0, -11], sc: "hgreen" },
+      { t: "arrow", from: [558, 220], to: [322, 220], label: "SYN-ACK", lo: [0, -11], sc: "hgreen" },
+      { t: "arrow", from: [322, 246], to: [558, 246], label: "ACK", lo: [0, -11], sc: "hgreen" },
+      { t: "arrow", from: [322, 276], to: [558, 276], label: "HTTP GET /", lo: [0, -11] },
+      { t: "arrow", from: [558, 308], to: [322, 308], label: "200 OK", lo: [0, -11] },
+      { t: "arrow", from: [318, 338], to: [82, 338], label: "200 OK", lo: [0, -11] }
+    ]
+  },
+  o: [
+    "It picks a backend from IP addresses and ports alone, so it never sees the request path or headers.",
+    "It relays the client’s TCP segments unchanged, so the server takes part in the client’s handshake.",
+    "It spends less CPU per request than a load balancer that only forwards TCP connections.",
+    "Two HTTP requests sent over one client connection may be answered by two different backend servers."
+  ],
+  ans: 3,
+  sol: "Two separate three-way handshakes, one client↔balancer and one balancer↔server, are the signature of a Layer 7 load balancer. It terminates the client’s connection, parses HTTP, and opens (or reuses) its own connections to backends. Because it decides per request rather than per connection, consecutive requests on one client connection can land on different servers: a feature for stateless HTTP, and a hazard for anything that must stick to one server.\n\n(A) and (B) describe a Layer 4 balancer, which picks a backend per TCP connection and behaves as if the client had connected directly. (C) is backwards: inspecting and re-originating HTTP costs more CPU than forwarding TCP."
+});
+Q.push({
+  k: "a1-3", sec: "a1", type: "single", tag: "Polling",
+  q: "A dashboard polls `GET /api/updates` every 5 s. The team raises the HTTP keep-alive idle timeout from 2 s to 30 s. What does that change actually buy?",
+  o: [
+    "Most polls reuse an already-open TCP (and TLS) connection instead of handshaking again.",
+    "Each client sends fewer HTTP requests per minute, since one connection carries several polls.",
+    "The database does less work, because the server can cache results per open connection.",
+    "Worst-case update latency drops, because the server can now push data on the idle connection."
+  ],
+  ans: 0,
+  sol: "With a 2 s idle timeout the connection closes between polls, so every poll pays a TCP handshake (plus a TLS handshake on HTTPS) before the request is even sent. A 30 s timeout outlives the 5 s interval, so after the first poll the client keeps reusing one connection.\n\nNothing else changes. The client still sends 12 requests a minute (B), the server still does the same lookup (C), and HTTP keep-alive doesn’t let a server send unsolicited data (D); filling that gap is the job of long polling, SSE and WebSockets."
+});
+Q.push({
+  k: "a1-4", sec: "a1", type: "single", tag: "WebSockets",
+  q: "A browser sends an HTTP request with `Upgrade: websocket` and `Connection: Upgrade`. Which status code tells it the upgrade succeeded and that the same TCP connection now speaks the WebSocket protocol?",
+  o: ["`200 OK`", "`101 Switching Protocols`", "`426 Upgrade Required`", "`204 No Content`"],
+  ans: 1,
+  sol: "A successful handshake returns `101 Switching Protocols` along with `Sec-WebSocket-Accept`. From then on the TCP connection carries WebSocket frames, not HTTP messages, which is why every hop in between (proxies, load balancers) has to understand and allow the upgrade.\n\n`426 Upgrade Required` is the trap: it is a server telling the client that it must upgrade, not confirmation that it did. A `200` means the server handled it as an ordinary request."
+});
+Q.push({
+  k: "a1-5", sec: "a1", type: "single", tag: "WebSockets",
+  q: "Many architectures terminate WebSockets in a dedicated WebSocket service directly behind an L4 load balancer, and keep business logic in separate services. What is the main reason?",
+  o: [
+    "Common application frameworks can’t parse WebSocket frames at all, so a dedicated translation layer is unavoidable.",
+    "An L4 load balancer can forward traffic to only one backend service, so every protocol has to share a single entry point.",
+    "Terminating sockets early removes the need for clients to reconnect when a backend server fails or redeploys.",
+    "It keeps stateful, long-lived connections in one small service that rarely deploys, so the rest stays stateless."
+  ],
+  ans: 3,
+  sol: "Long-lived connections are state, and every deploy of a service that holds them severs connections and triggers a reconnect wave. Terminating sockets in a thin WebSocket service keeps that state in one place that changes rarely, while services that change often stay stateless and scale independently. The pattern also advises keeping that edge service light and pushing heavy processing elsewhere, so load stays even across it.\n\n(C) is false: clients must still handle reconnection, and catch up on missed updates, whenever that edge service restarts or fails. (A) and (B) are simply untrue."
+});
+Q.push({
+  k: "a1-6", sec: "a1", type: "single", tag: "Consistent hashing",
+  q: "On the ring in the figure (positions 0 to 99; each key belongs to the next server clockwise), server S3 at position 60 crashes and is removed. Which keys must move, and where do they go?",
+  d: {
+    w: 640, h: 400, seed: 41, alt: "Hash ring from 0 to 99 with servers S1 at 10, S2 at 35, S3 at 60 (crossed out), S4 at 85, and keys A at 5, B at 22, C at 40, D at 55, E at 70, F at 93.",
+    el: [{
+      t: "ring", cx: 320, cy: 202, r: 140, cw: true, nodes: [
+        { p: 10, label: "S1", kind: "server" }, { p: 35, label: "S2", kind: "server" }, { p: 60, label: "S3", kind: "server", dead: true }, { p: 85, label: "S4", kind: "server" },
+        { p: 5, label: "A" }, { p: 22, label: "B" }, { p: 40, label: "C" }, { p: 55, label: "D" }, { p: 70, label: "E" }, { p: 93, label: "F" }
+      ]
+    }]
+  },
+  o: ["C and D move to S4.", "C and D move to S2.", "C, D and E move to S4.", "Every key is reassigned, since the server count changed."],
+  ans: 0,
+  sol: "Walk clockwise from each key: A (5) → S1 (10), B (22) → S2 (35), C (40) → S3 (60), D (55) → S3 (60), E (70) → S4 (85), and F (93) wraps past 99 to S1 (10). Only the keys S3 owned are affected, namely C and D. With S3 gone, the next server clockwise from 40 and 55 is S4 at 85.\n\n(B) walks counterclockwise. (C) moves E, which never belonged to S3. (D) describes `hash(key) % N`, where changing N reshuffles almost everything; avoiding that is the whole point of the ring."
+});
+Q.push({
+  k: "a1-7", sec: "a1", type: "single", tag: "Choosing a protocol",
+  q: "After checkout, a user lands on a “processing payment” page. The provider confirms asynchronously within 2 to 20 s, the page needs exactly one update, and nothing else on the page changes. Which client update mechanism fits best?",
+  o: ["Simple polling every 30 s", "A WebSocket opened for the whole session", "Long polling on the payment status", "A WebRTC data channel to the payment service"],
+  ans: 2,
+  sol: "One awaited event, wanted the moment it happens, with no other traffic: the textbook long-polling case, and the pattern’s own example. The client calls `GET /payments/{id}/status`; the server holds the request until the status changes, or until a timeout of roughly 15 to 30 s after which the client simply asks again. It rides on ordinary HTTP infrastructure.\n\nPolling every 30 s (A) adds up to 30 s of dead time on a page the user is staring at. A WebSocket (B) brings stateful-connection infrastructure for a single message. WebRTC (D) is for peer-to-peer media and data, not server-to-client notifications."
+});
+Q.push({
+  k: "a1-8", sec: "a1", type: "single", tag: "WebRTC",
+  q: "Two browsers on restrictive corporate networks try to start a WebRTC call. Hole punching fails for every candidate pair. Which component ends up carrying their media?",
+  o: ["The STUN server", "A TURN server", "The signaling server", "Nothing; without a direct path the call cannot connect"],
+  ans: 1,
+  sol: "STUN only tells a peer its public address and port so the peers can try a direct path (hole punching). When that fails, as it often does behind symmetric NATs and strict firewalls, TURN relays the traffic: both peers send to the TURN server, which forwards to the other side. It works, but every byte now crosses your infrastructure, which is why TURN capacity is a real cost line.\n\nThe signaling server only exchanges session descriptions and ICE candidates; it never carries media. (D) is wrong because TURN exists for exactly this fallback."
+});
+Q.push({
+  k: "a1-9", sec: "a1", type: "single", tag: "Fan-out",
+  q: "During a live final, likes and comments pour in for a single stream. In the figure, write processors feed a root processor, which sends a one-second rollup to broadcast nodes that each serve one region of viewers. What problem does this structure mainly solve?",
+  d: {
+    w: 700, h: 300, seed: 51, alt: "Viewers posting feed three write processors, which feed a root processor, which sends a one-second rollup to two broadcast nodes, each serving a region of viewers.",
+    el: [
+      { t: "box", id: "v", x: 8, y: 112, w: 100, h: 76, label: "Viewers\nposting", fill: "gray" },
+      { t: "box", id: "w1", x: 152, y: 26, w: 130, h: 48, label: "Write proc 1", fill: "orange", fs: 16 },
+      { t: "box", id: "w2", x: 152, y: 126, w: 130, h: 48, label: "Write proc 2", fill: "orange", fs: 16 },
+      { t: "box", id: "w3", x: 152, y: 226, w: 130, h: 48, label: "Write proc 3", fill: "orange", fs: 16 },
+      { t: "box", id: "root", x: 336, y: 112, w: 130, h: 76, label: "Root\nprocessor", fill: "purple" },
+      { t: "box", id: "b1", x: 530, y: 46, w: 160, h: 58, label: "Broadcast\nnode 1", fill: "blue" },
+      { t: "box", id: "b2", x: 530, y: 196, w: 160, h: 58, label: "Broadcast\nnode 2", fill: "blue" },
+      { t: "arrow", from: "v", to: "w1" }, { t: "arrow", from: "v", to: "w2" }, { t: "arrow", from: "v", to: "w3" },
+      { t: "arrow", from: "w1", to: "root" }, { t: "arrow", from: "w2", to: "root" }, { t: "arrow", from: "w3", to: "root" },
+      { t: "arrow", from: "root", to: "b1" },
+      { t: "text", x: 508, y: 150, s: "1 s rollups", fs: 14, c: "muted" },
+      { t: "arrow", from: "root", to: "b2" },
+      { t: "text", x: 610, y: 124, s: "viewers in region 1", fs: 14, c: "muted" },
+      { t: "text", x: 610, y: 274, s: "viewers in region 2", fs: 14, c: "muted" }
+    ]
+  },
+  o: [
+    "Fan-out: no single component has to deliver every individual event to millions of viewers.",
+    "Ordering: every viewer sees each comment in exactly the order it was written.",
+    "Durability: no like is lost even if a broadcast node crashes mid-stream.",
+    "Authorization: only signed-in users are able to post likes and comments."
+  ],
+  ans: 0,
+  sol: "This is the celebrity, or hot-key, fan-out problem. If every like went individually to every viewer, the work would be events × viewers. Aggregation shrinks the event count (thousands of likes become one rollup a second), and the tree splits the fan-out so each broadcast node serves only its own region. Every layer does a bounded amount of work.\n\nIt gives no ordering guarantee (B); batching, if anything, relaxes ordering. Durability (C) and authorization (D) are separate concerns that this structure doesn’t address."
+});
+
+/* ---------------- Section 2: one or more correct ---------------- */
+Q.push({
+  k: "a2-1", sec: "a2", type: "multi", tag: "SSE",
+  q: "Which of the following statements about Server-Sent Events are correct?",
+  o: [
+    "Once the stream is open, the client can send messages to the server over that same response.",
+    "When the connection drops, the browser’s `EventSource` reconnects on its own and sends the last event ID it saw in a `Last-Event-ID` header.",
+    "A proxy that buffers responses until they complete can silently hold back every event until the stream ends.",
+    "Over HTTP/1.1, browsers cap concurrent connections per domain, so many SSE streams from one page can starve other requests."
+  ],
+  ans: [1, 2, 3],
+  sol: "(A) Incorrect. SSE is one-way. Client-to-server traffic goes in ordinary HTTP requests, which is why the common pairing is SSE for reads plus POST for writes.\n\n(B) Correct. Automatic reconnection plus `Last-Event-ID` is built into `EventSource`; the server can use the ID to replay what the client missed.\n\n(C) Correct. This is the nastiest SSE failure in practice: everything works locally, then an intermediary buffers the response and the events arrive in one lump at the end.\n\n(D) Correct. The HTTP/1.1 per-domain cap (typically 6) applies to long-lived streams too. HTTP/2 multiplexes streams over a single connection and largely removes the problem."
+});
+Q.push({
+  k: "a2-2", sec: "a2", type: "multi", tag: "Pub/sub",
+  q: "A chat system pushes updates through endpoint servers that subscribe to a Redis Pub/Sub cluster, with one topic per user. Which statements are correct?",
+  o: [
+    "Clients can connect to any endpoint server, so a least-connections load balancer is enough to spread load.",
+    "Unless it is sharded (for example with Redis Cluster), the pub/sub layer is both a bottleneck and a single point of failure.",
+    "When a message is published, the broker tells the publisher whether the recipient is currently connected.",
+    "Each endpoint server typically ends up holding connections to every node of the pub/sub cluster."
+  ],
+  ans: [0, 1, 3],
+  sol: "(A) Correct. Because routing happens through topics, endpoint servers are interchangeable, and the resource they spend is connections, so least-connections is the natural balancing rule.\n\n(B) Correct. Sharding subscriptions by key across hosts raises both subscription capacity and throughput.\n\n(C) Incorrect. A publisher learns nothing about who received the message. Not knowing whether subscribers are connected, or when they disconnect, is a listed weakness of the approach, and it is why durable state such as an inbox has to live somewhere else.\n\n(D) Correct. Any endpoint server may need any topic, so it connects to every shard: a many-to-many mesh that stays manageable because the cluster is usually small."
+});
+Q.push({
+  k: "a2-3", sec: "a2", type: "multi", tag: "Long polling",
+  q: "A team ships long polling with a 60 s server hold time. Which of these are genuine problems they should expect?",
+  o: [
+    "It needs special infrastructure beyond ordinary HTTP servers, proxies and load balancers.",
+    "A load balancer with a 30 s idle timeout will cut requests off before the server answers.",
+    "Monitoring gets harder, because requests that legitimately hang for a minute look like slow requests.",
+    "When several updates arrive in quick succession, each extra update waits for a fresh request round trip."
+  ],
+  ans: [1, 2, 3],
+  sol: "(A) Incorrect. Long polling’s main selling point is that it is plain HTTP and works anywhere HTTP works.\n\n(B) Correct. Every hop must tolerate the hold time. A 15 to 30 s hold is a common choice precisely so you never fight default idle timeouts.\n\n(C) Correct. Latency dashboards and alerts built for request/response traffic get polluted by requests that are long on purpose.\n\n(D) Correct. After each response the client must send a new request before the next update can be delivered, so bursts arrive with extra round trips. This is why SSE wins for frequent updates."
+});
+Q.push({
+  k: "a2-4", sec: "a2", type: "multi", tag: "Reconnection",
+  q: "A real-time service must survive flaky mobile networks without losing updates. Which techniques directly help?",
+  o: [
+    "Application-level heartbeats, so the server spots a dead connection in seconds instead of waiting on TCP.",
+    "Raising the TCP keepalive interval, so fewer probe packets compete with real traffic.",
+    "Sequence numbers on updates, so a reconnecting client can ask for everything after the last one it saw.",
+    "A per-user buffer of recent updates (for example a Redis Stream) that any server can replay from."
+  ],
+  ans: [0, 2, 3],
+  sol: "(A) Correct. A socket can look open while being dead, a so-called zombie connection. Heartbeats bound detection time to roughly one interval plus the timeout.\n\n(B) Incorrect. A longer keepalive makes detection slower, the opposite of what you want.\n\n(C) Correct. The client says where it left off and the server sends the gap. SSE’s `Last-Event-ID` is a built-in version of this.\n\n(D) Correct. Replay needs something to replay from, and keeping it in shared storage means the client can reconnect to a different server and still catch up."
+});
+
+/* ---------------- Section 3: assertion and reason ---------------- */
+Q.push({
+  k: "a3-1", sec: "a3", type: "ar", tag: "Load balancers",
+  a: "For WebSocket traffic, a Layer 4 load balancer is generally a safer default than a Layer 7 one.",
+  r: "A Layer 4 balancer pins each TCP connection to one backend for its whole life, so the upgraded socket naturally stays on one server.",
+  ans: 0,
+  sol: "Both are true, and R is the reason. After the upgrade a WebSocket is just a long-lived TCP connection, and an L4 balancer forwards that connection to one server and leaves it there. Many L7 balancers do support WebSockets today, but they are built around per-request decisions, support has historically been uneven, and no L7 feature is needed here. The WhatsApp breakdown makes this exact argument for its chat servers: L4 is sufficient and faster."
+});
+Q.push({
+  k: "a3-2", sec: "a3", type: "ar", tag: "Reconnection",
+  a: "Relying on TCP keepalive is enough to detect dead WebSocket connections in a chat app.",
+  r: "TCP keepalive probes are commonly configured on the order of minutes.",
+  ans: 3,
+  sol: "A is false and R is true. Because keepalive detection takes minutes, a user can stare at an app that looks connected while missing messages. Chat systems add application-level heartbeats (a ping every 10 to 30 s, with a pong expected within a few seconds) so a dead socket is caught within one interval plus the timeout. R is the very fact that makes A false."
+});
+Q.push({
+  k: "a3-3", sec: "a3", type: "ar", tag: "Consistent hashing",
+  a: "Consistent hashing reduces connection churn when servers are added or removed.",
+  r: "Consistent-hashing deployments typically rely on a coordination service such as ZooKeeper or etcd to track ring membership.",
+  ans: 1,
+  sol: "Both are true, but R doesn’t explain A. Churn falls because each server owns arcs of the ring, so adding or removing one server moves only the keys on the affected arcs (about 1/N of them) instead of nearly every key as with `hash % N`. The coordination service is an operational requirement, since everyone must agree on the ring, not the reason fewer keys move."
+});
+Q.push({
+  k: "a3-4", sec: "a3", type: "ar", tag: "Polling",
+  a: "Proposing simple polling can be the strongest move in a senior system design interview.",
+  r: "When updates don’t need to be immediate, polling sidesteps both hops: no persistent client protocol, and no routing of updates from their source to a specific server.",
+  ans: 0,
+  sol: "Both are true, and R explains A. Senior and staff interviews reward the least complexity that meets the requirements. If a few seconds of delay is acceptable, polling avoids persistent connections (hop 1) and avoids having to route each update to the server holding a particular client (hop 2). The advice is to propose it out loud and check with the interviewer, keeping a path to push if they really want it."
+});
+Q.push({
+  k: "a3-5", sec: "a3", type: "ar", tag: "WebRTC",
+  a: "WebRTC can reduce server load for features like cursor and presence sharing in a collaborative canvas.",
+  r: "Once peers are connected, WebRTC needs no servers at all.",
+  ans: 2,
+  sol: "A is true: Canva moved pointer and presence sharing onto peer-to-peer connections so that high-frequency, low-value traffic stopped hitting its servers. R is false. WebRTC still needs a signaling server to discover peers and exchange connection details (itself a real-time channel), STUN to learn public addresses, TURN to relay when direct paths fail, and in practice a central server for anything that must be persisted."
+});
+
+/* ---------------- Section 4: match the columns ---------------- */
+Q.push({
+  k: "a4-1", sec: "a4", type: "match", tag: "Choosing a protocol",
+  q: "Match each workload in List I with the client update mechanism in List II that fits it best.",
+  m: {
+    l1: [["P", "A four-person video call with screen sharing"], ["Q", "A ticker pushing stock prices one way to many viewers"], ["R", "A shared whiteboard where every user streams strokes many times a second"], ["S", "A nightly report page that refreshes its status every 30 s"]],
+    l2: [["1", "Simple polling"], ["2", "Server-Sent Events"], ["3", "WebSocket"], ["4", "WebRTC"], ["5", "Long polling"]]
+  },
+  o: ["P→4, Q→5, R→3, S→1", "P→3, Q→2, R→4, S→5", "P→4, Q→2, R→3, S→1", "P→4, Q→2, R→2, S→5"],
+  ans: 2,
+  sol: "P: audio and video between peers is WebRTC’s home ground (→4). Q: one-way, server-originated and frequent, so SSE (→2); long polling, as in option (A), pays an extra round trip per burst, which hurts when prices tick rapidly. R: high-frequency traffic in both directions is the case where WebSocket earns its complexity (→3); SSE plus POST, as in option (D), would send every stroke as a separate HTTP request. S: not latency-sensitive, so simple polling (→1) is the cheapest correct answer."
+});
+Q.push({
+  k: "a4-2", sec: "a4", type: "match", tag: "Networking",
+  q: "Match each protocol in List I with the layer in List II at which it operates.",
+  m: {
+    l1: [["P", "IP"], ["Q", "TCP"], ["R", "DNS"], ["S", "UDP"]],
+    l2: [["1", "Layer 3, network"], ["2", "Layer 4, transport"], ["3", "Layer 7, application"]]
+  },
+  o: ["P→2, Q→2, R→2, S→1", "P→1, Q→2, R→3, S→2", "P→1, Q→2, R→2, S→2", "P→1, Q→3, R→3, S→2"],
+  ans: 1,
+  sol: "IP handles addressing and routing (Layer 3). TCP and UDP provide end-to-end transport (Layer 4): TCP with connections, ordering and retransmission, UDP without. DNS is an application protocol (Layer 7) even though it usually travels over UDP. Option (C) falls for exactly that: a protocol’s layer is about what it does, not what it rides on."
+});
+Q.push({
+  k: "a4-3", sec: "a4", type: "match", tag: "Server-side triggers",
+  q: "Match each way of getting updates from their source to the right server (List I) with its defining property (List II).",
+  m: {
+    l1: [["P", "Pull via polling"], ["Q", "Push via consistent hashing"], ["R", "Push via pub/sub"], ["S", "Hierarchical aggregation"]],
+    l2: [["1", "One predictable server owns each entity, which suits heavy per-connection state"], ["2", "Updates wait in a database, and the client’s request is the trigger"], ["3", "Endpoint servers are interchangeable, and a broker holds the routing"], ["4", "Tiers of nodes batch and spread updates, so no single node fans out to everyone"]]
+  },
+  o: ["P→2, Q→3, R→1, S→4", "P→3, Q→1, R→2, S→4", "P→2, Q→1, R→4, S→3", "P→2, Q→1, R→3, S→4"],
+  ans: 3,
+  sol: "Polling decouples producer and consumer through storage: the producer writes and the next poll picks it up (P→2). Consistent hashing gives every entity, such as a user or a document, a known owner, which is why it is chosen when connection state is expensive to rebuild (Q→1). Pub/sub moves the routing state into the broker, so endpoint servers stay light and interchangeable (R→3). Hierarchical aggregation tackles extreme fan-out by batching and distributing through tiers (S→4)."
+});
+
+/* ---------------- Section 5: numerical ---------------- */
+Q.push({
+  k: "a5-1", sec: "a5", type: "num", tag: "Long polling",
+  q: "A client long-polls a server over a link with 80 ms one-way latency; ignore processing time. Its request is already waiting at the server when update U1 occurs at t = 0, and update U2 occurs at t = 15 ms. The server answers each held request as soon as it has data, one update per response, and the client re-requests immediately after each response arrives. How long after U2 occurred does the client receive it, in milliseconds?",
+  ans: { v: 225, tol: 0, unit: "ms" },
+  sol: "Follow the timeline in the figure. U1 at t = 0: the held request is answered at once and the response reaches the client at t = 80. The client re-requests immediately, and the request reaches the server at t = 160. U2 has been waiting since t = 15, so the server answers straight away, and the response arrives at t = 240.\n\nDelay for U2 = 240 − 15 = **225 ms**. In general the worst case is (L − Δ) + L + L = 3L − Δ: the rest of U1’s trip back, a full trip for the new request, and a full trip for the response. With L = 100 ms and Δ = 10 ms this gives the 290 ms quoted in the pattern. Over SSE, U2 would ride the already-open stream and arrive at t = 95, just 80 ms after it occurred.",
+  sd: {
+    w: 640, h: 340, seed: 61, alt: "Timeline: response 1 leaves the server at t equals 0 and arrives at t equals 80; request 2 arrives at the server at t equals 160; response 2 carrying U2 arrives at t equals 240. U2 waits 225 ms.",
+    el: [
+      { t: "box", x: 90, y: 6, w: 120, h: 36, label: "Server", fill: "purple", fs: 16 },
+      { t: "box", x: 410, y: 6, w: 120, h: 36, label: "Client", fill: "blue", fs: 16 },
+      { t: "line", pts: [[150, 42], [150, 332]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "line", pts: [[470, 42], [470, 332]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "dot", x: 150, y: 56, r: 5, fill: "hblue", label: "U1 at t=0", lo: [-12, -4], la: "end" },
+      { t: "dot", x: 150, y: 72, r: 5, fill: "hred", label: "U2 at t=15", lo: [-12, 10], la: "end" },
+      { t: "arrow", from: [152, 56], to: [468, 144], label: "response 1 carries U1", lo: [0, -14] },
+      { t: "arrow", from: [468, 144], to: [152, 232], label: "request 2", lo: [0, -14] },
+      { t: "arrow", from: [152, 232], to: [468, 320], label: "response 2 carries U2", lo: [0, -14], sc: "hred" },
+      { t: "text", x: 482, y: 144, s: "t=80", a: "start" },
+      { t: "text", x: 140, y: 232, s: "t=160", a: "end" },
+      { t: "text", x: 482, y: 320, s: "t=240", a: "start" },
+      { t: "line", pts: [[34, 72], [34, 320]], arrow: true, two: true, sc: "hred", sw: 1.4 },
+      { t: "text", x: 44, y: 182, s: "U2 waits\n225 ms", a: "start", c: "hred" }
+    ]
+  }
+});
+Q.push({
+  k: "a5-2", sec: "a5", type: "num", tag: "Consistent hashing",
+  q: "Connections are assigned with `server = userId % N`, and user IDs are uniformly distributed. The fleet grows from N = 4 to N = 5. What percentage of users end up assigned to a different server?",
+  ans: { v: 80, tol: 0, unit: "%" },
+  sol: "A user stays put only if `u % 4 == u % 5`. Both residues repeat every lcm(4, 5) = 20 IDs, so it is enough to check u = 0 to 19. If `u % 4` and `u % 5` both equal c, then u ≡ c (mod 20) with c < 4, so only u ∈ {0, 1, 2, 3} stay: 4 users in every 20, or 20 %. So **80 %** move.\n\nCompare consistent hashing: adding a fifth server to four equal owners moves only the share the new server takes over, about 1/5, or 20 %. That gap is the whole argument for the ring."
+});
+Q.push({
+  k: "a5-3", sec: "a5", type: "num", tag: "Polling",
+  q: "3 million clients each poll every 12 s. The load balancer closes connections that sit idle for 10 s. In steady state, how many new TCP connections per second, in thousands, must the fleet accept?",
+  ans: { v: 250, tol: 0, unit: "thousand per second" },
+  sol: "Polls per second = 3,000,000 ÷ 12 = 250,000. Each connection sits idle for 12 s between polls but the balancer closes it after 10 s, so every poll arrives on a fresh connection: **250 thousand** handshakes per second, each also paying a TLS handshake on HTTPS.\n\nRaise the idle timeout above the polling interval, say to 15 s, and steady-state handshakes drop to roughly zero while the request volume stays exactly the same."
+});
+Q.push({
+  k: "a5-4", sec: "a5", type: "num", tag: "Consistent hashing",
+  q: "A WebSocket fleet uses a consistent hash ring with enough virtual nodes that ownership is perfectly balanced. It scales from 8 servers to 10. What percentage of connections must move?",
+  ans: { v: 20, tol: 0, unit: "%" },
+  sol: "With perfect balance, each of the 10 servers ends up owning 1/10 of the key space. Every key now owned by one of the 2 new servers must move, and no other key does: 2/10 = **20 %**. With `% N` hashing, 8 → 10 would move 80 %, because only IDs whose residues agree modulo lcm(8, 10) = 40 stay put, which is 8 in every 40. The orchestration the pattern describes (record old and new assignments, drain clients gradually, deliver to both owners during the move) then applies only to that 20 %."
+});
+
+/* ---------------- Section 6: paragraph ---------------- */
+Q.push({
+  k: "a6-1", sec: "a6", psg: "pulse", type: "single", tag: "Pulse",
+  q: "Which client update mechanism should Pulse use for scores?",
+  o: ["Simple polling every 20 s", "A WebSocket per viewer", "WebRTC from the ingest service to viewers", "Server-Sent Events"],
+  ans: 3,
+  sol: "Every score update flows one way, from server to viewer, and reactions already travel over plain HTTP. That is the shape SSE is built for: a long-lived HTTP response the server keeps writing into.\n\nPolling every 20 s (A) can leave a score up to 20 s stale, far outside the one-second goal, and polling every second instead would cost 5 million requests per second for mostly unchanged data. A WebSocket (B) works, but adds bidirectional, stateful-connection infrastructure that nobody uses. WebRTC (C) is for peer-to-peer media."
+});
+Q.push({
+  k: "a6-2", sec: "a6", psg: "pulse", type: "single", tag: "Pulse",
+  q: "Which server-side approach fits the box marked “?” in the figure best?",
+  o: [
+    "Consistent hashing of viewers onto endpoint servers by user ID, with the ingest service calling the owning server once for every viewer of the match.",
+    "Pub/sub with one topic per match, where each endpoint server subscribes to the topics of the matches its connected viewers are following.",
+    "Each viewer’s connection handler polls the scores database every second for its own match.",
+    "The ingest service sends every update to every endpoint server, which discards updates for matches it isn’t serving."
+  ],
+  ans: 1,
+  sol: "Per-connection state is tiny (which match a viewer follows), and each match update must reach every server holding a viewer of that match: the pub/sub sweet spot. A topic per match means each server only receives updates it can use, and the servers stay interchangeable, so balancing is just least-connections.\n\n(A) uses consistent hashing where there is no heavy state to protect, and makes the ingest service fan out per viewer: a match with 100,000 viewers would cost 100,000 calls per update. (C) is 5 million database queries a second. (D) works at small scale but makes every server process every update: 1,000 updates a second per server across 20,000 matches, almost all of them irrelevant, and the waste grows with the fleet."
+});
+Q.push({
+  k: "a6-3", sec: "a6", psg: "pulse", type: "num", tag: "Pulse",
+  q: "Using the figures in the paragraph, what is the minimum number of endpoint servers Pulse needs?",
+  ans: { v: 63, tol: 0, unit: "servers" },
+  sol: "Two limits apply. Connections: 5,000,000 ÷ 100,000 = 50 servers. Push rate: each viewer gets one event every 20 s, so the fleet pushes 5,000,000 ÷ 20 = 250,000 events a second, and 250,000 ÷ 4,000 = 62.5, which rounds up to 63 servers.\n\nThe push rate is the binding constraint: **63** servers, each holding about 79,400 connections and pushing about 3,970 events a second. Sizing on connections alone would leave the fleet 20 % short of push capacity."
+});
+
+/* ---------------- Ticketmaster ---------------- */
+Q.push({
+  k: "tm-1", sec: "tm", type: "single", tag: "Ticketmaster",
+  q: "For a moderately popular concert, the design pushes seat availability over SSE to everyone viewing the seat map. Why is that judged insufficient on its own for a Taylor Swift–scale on-sale?",
+  o: [
+    "SSE cannot hold millions of concurrent connections, even when those connections are spread evenly across many servers.",
+    "SSE carries only UTF-8 text, so seat-map changes for an entire stadium would be far too large to send in time.",
+    "Browsers allow just one SSE connection per page, which would block the checkout flow while the map stays open.",
+    "Seats would vanish almost instantly as people clicked; the fix is metering who reaches the map, not pushing faster."
+  ],
+  ans: 3,
+  sol: "The breakdown frames this as the gap between a senior and a staff answer: the bottleneck is demand, not transport. With millions of people chasing tens of thousands of seats, even perfectly real-time updates produce a disorienting experience in which every seat you click is already gone. The great solution is an admin-enabled virtual waiting queue that admits users to the booking page in controlled batches.\n\n(A) is false: SSE scales horizontally like any connection fleet. (B) is false: events are text, but seat diffs are small JSON. (C) is false: the browser limit is per domain (about 6 on HTTP/1.1), not one per page."
+});
+Q.push({
+  k: "tm-2", sec: "tm", type: "multi", tag: "Ticketmaster",
+  q: "The figure sketches the virtual waiting room. Which statements are correct?",
+  d: {
+    w: 680, h: 318, seed: 71, alt: "Client joins a Queue Service and receives SSE position updates. The Queue Service uses a Redis sorted set for the queue and marks users in an admitted set with a TTL. The client posts bookings to a Booking Service, which checks the admitted set.",
+    el: [
+      { t: "box", id: "c", x: 8, y: 128, w: 110, h: 60, label: "Client", fill: "blue" },
+      { t: "box", id: "qs", x: 222, y: 26, w: 154, h: 62, label: "Queue Service", fill: "purple", fs: 16 },
+      { t: "box", id: "bs", x: 236, y: 230, w: 154, h: 62, label: "Booking Service", fill: "orange", fs: 16 },
+      { t: "db", id: "z", x: 488, y: 6, w: 184, h: 104, label: "queue:{eventId}\nsorted set", fill: "red", fs: 15 },
+      { t: "db", id: "ad", x: 488, y: 150, w: 184, h: 104, label: "admitted:{eventId}\nset with TTL", fill: "red", fs: 15 },
+      { t: "arrow", from: "c", to: "qs", label: "join", off: 10, lo: [22, 14] },
+      { t: "arrow", from: "qs", to: "c", label: "SSE: position,\nyour turn", off: 10, lo: [-40, -24], sc: "hblue" },
+      { t: "arrow", from: "qs", to: "z", label: "ZADD, pop front", lo: [0, -16] },
+      { t: "arrow", from: "qs", to: "ad", label: "mark admitted", lo: [-6, 4] },
+      { t: "arrow", from: "c", to: "bs", label: "POST /bookings", lo: [-14, 16] },
+      { t: "arrow", from: "bs", to: "ad", label: "admitted?", dash: true, lo: [0, 14] }
+    ]
+  },
+  o: [
+    "A Redis sorted set scored by join timestamp can hold the queue order, and popping from the front admits the earliest arrivals.",
+    "The Booking Service must check the admitted set on every reservation request; otherwise users could skip the queue by calling the booking API directly.",
+    "SSE is sufficient for the queue connection, because position updates and the admission notice flow only from server to client.",
+    "Admitted markers should never expire, so admitted users can come back and buy at any point during the on-sale."
+  ],
+  ans: [0, 1, 2],
+  sol: "(A) Correct. Scoring by arrival time gives FIFO order, and dequeuing in batches (on a timer, or as tickets sell) controls how fast users reach the seat map.\n\n(B) Correct. A queue the server doesn’t enforce is only decoration. The breakdown has the Booking Service reject reservations from sessions that aren’t in `admitted:{eventId}`.\n\n(C) Correct. The client only needs to hear its position and its turn, so SSE is the simpler fit; WebSocket makes sense only if you expect client-to-server messages on that channel.\n\n(D) Incorrect. Admission carries a TTL. Without it, admitted users who wander off hold their slot forever, and the admission rate stops reflecting how many people are really shopping."
+});
+Q.push({
+  k: "tm-3", sec: "tm", type: "ar", tag: "Ticketmaster",
+  a: "To show held seats on the live seat map, a Redis sorted set scored by each hold’s expiry time is a better index than a plain Redis set of locked ticket IDs.",
+  r: "Members of a plain set don’t expire when the matching per-ticket lock keys expire.",
+  ans: 0,
+  sol: "Both are true, and R explains A. Holds are per-ticket lock keys with a TTL (`SET ... NX EX`), but a separate set of held IDs doesn’t know when those keys expire, so every abandoned checkout leaves a ghost entry that shows the seat as taken forever. Scoring each member by its expiry (`ZADD event:{id}:reserved <expiresAt> ticketId`) lets the seat-map read count only scores in the future, while stale members are trimmed lazily with `ZREMRANGEBYSCORE`. A pushed seat map is only as correct as the state it reads."
+});
+Q.push({
+  k: "tm-4", sec: "tm", type: "num", tag: "Ticketmaster",
+  q: "A virtual queue for a stadium on-sale admits 2,000 users every 10 s. A user joins at position 150,000. Ignoring abandonment, roughly how many minutes until they reach the seat map?",
+  ans: { v: 12.5, tol: 0.05, unit: "minutes" },
+  sol: "Admission rate = 2,000 per 10 s = 200 users a second. Wait = 150,000 ÷ 200 = 750 s = **12.5 minutes**. A quarter of an hour in front of a spinner is exactly why the breakdown insists on pushing live queue position and an estimated wait. In practice, abandonment ahead of you shortens the wait, so the estimate should be recomputed from the observed dequeue rate rather than fixed when the user joins."
+});
+
+/* ---------------- Uber ---------------- */
+Q.push({
+  k: "ub-1", sec: "ub", type: "single", tag: "Uber",
+  q: "In the Uber design, the Ride Matching Service picks a driver and has to offer them the ride. Drivers often have the app backgrounded while they navigate. How does the offer reach them?",
+  o: [
+    "A Notification Service sends a mobile push through APNs or FCM.",
+    "A WebSocket that the driver app keeps open to the Ride Matching Service.",
+    "The driver app long-polls the Ride Service for pending offers every few seconds.",
+    "An SSE stream from the Location Service, piggybacking on location acknowledgements."
+  ],
+  ans: 0,
+  sol: "The breakdown adds a Notification Service that sends the offer through APNs on iOS and FCM on Android. OS-level push reaches an app that is backgrounded or suspended, which an in-app socket (B, D) cannot count on, because mobile operating systems throttle or kill background connections. The driver accepts with `PATCH /rides/:rideId`, an ordinary HTTP call. If they decline or don’t answer within 10 s, the next driver in the ranked list gets the offer, orchestrated in the great solution by durable execution such as Temporal."
+});
+Q.push({
+  k: "ub-2", sec: "ub", type: "num", tag: "Uber",
+  q: "6 million drivers are online. At a fixed 4 s interval they would send 1.5 million location updates a second. The team ships adaptive intervals: 40 % of drivers are stationary or crawling and report every 20 s, and the other 60 % report every 4 s. How many location updates per second, in thousands, does the Location Service now receive?",
+  ans: { v: 1020, tol: 0, unit: "thousand per second" },
+  sol: "Stationary: 0.4 × 6,000,000 ÷ 20 = 120,000 a second. Moving: 0.6 × 6,000,000 ÷ 4 = 900,000 a second. Total = **1,020 thousand** a second, a 32 % cut from 1.5 million without losing accuracy where it matters, on moving cars. This is the breakdown’s point about not neglecting the client: on-device sensors pick the interval, and the server never pays for the pings that were never sent."
+});
+Q.push({
+  k: "ub-3", sec: "ub", type: "multi", tag: "Uber",
+  q: "The figure shows how driver locations reach the matcher and how offers get back to drivers. Which statements are correct?",
+  d: {
+    w: 680, h: 330, seed: 81, alt: "Driver app posts location every 5 seconds to a Location Service, which runs GEOADD on a Redis geo set. The Ride Matching Service runs GEOSEARCH on Redis, then sends an offer through a Notification Service and APNs or FCM back to the driver app.",
+    el: [
+      { t: "box", id: "drv", x: 8, y: 34, w: 122, h: 60, label: "Driver app", fill: "blue" },
+      { t: "box", id: "loc", x: 262, y: 34, w: 150, h: 60, label: "Location\nService", fill: "purple", fs: 16 },
+      { t: "db", id: "rd", x: 500, y: 18, w: 172, h: 124, label: "Redis\ngeo set +\nlast-seen zset", fill: "red", fs: 15 },
+      { t: "box", id: "rm", x: 262, y: 168, w: 150, h: 60, label: "Ride Matching\nService", fill: "orange", fs: 16 },
+      { t: "box", id: "ns", x: 262, y: 262, w: 150, h: 58, label: "Notification\nService", fill: "green", fs: 16 },
+      { t: "box", id: "apn", x: 8, y: 262, w: 122, h: 58, label: "APNs / FCM", fill: "gray", fs: 16 },
+      { t: "arrow", from: "drv", to: "loc", label: "POST location\nevery ~5 s", lo: [0, -24] },
+      { t: "arrow", from: "loc", to: "rd", label: "GEOADD" },
+      { t: "arrow", from: "rm", to: "rd", label: "GEOSEARCH", lo: [4, 12] },
+      { t: "arrow", from: "rm", to: "ns", label: "offer", lo: [26, 0] },
+      { t: "arrow", from: "ns", to: "apn" },
+      { t: "arrow", from: "apn", to: "drv", label: "push", dash: true, lo: [24, 0], sc: "hblue" }
+    ]
+  },
+  o: [
+    "If the Redis node holding locations is lost, matching stays down until location history is replayed from a durable log.",
+    "Each `GEOADD` for a driver overwrites that driver’s previous position, so the geo set always holds the latest point per driver.",
+    "This ingestion path runs client to server, so plain HTTP POSTs are enough; no server push is involved in it.",
+    "Members of a geo set don’t expire individually, so a companion sorted set of last-update times is used to prune drivers who went offline."
+  ],
+  ans: [1, 2, 3],
+  sol: "(A) Incorrect. Locations rebuild themselves within one update interval, about 5 s, because every online driver reports again. Persistence (RDB or AOF) and Sentinel failover help, but no replay is needed.\n\n(B) Correct. The member is the driver ID, and a new `GEOADD` replaces its geohash score.\n\n(C) Correct. Location ingest runs opposite to the pattern’s first hop. Its challenge is write volume (about 2 million writes a second for 10 million drivers every 5 s), which is why it lands on an in-memory geo store rather than a database.\n\n(D) Correct. The breakdown keeps a timestamp-scored companion set and periodically removes drivers older than a threshold, such as 30 s, from both sets."
+});
+Q.push({
+  k: "ub-4", sec: "ub", type: "single", tag: "Uber",
+  q: "Extension beyond the breakdown: once matched, the rider’s app should show the assigned driver approaching in near real time. Driver pings land on any Location Service instance, and the rider holds an SSE connection to one of many endpoint servers. Which server-side trigger fits best?",
+  o: [
+    "Consistent hashing of riders onto endpoint servers, with each Location Service instance computing the owner for every ping.",
+    "Have the rider’s endpoint server run `GEOSEARCH` around the pickup point every 100 ms.",
+    "Publish each driver’s pings on a channel keyed by ride ID; the server holding the rider subscribes for the ride.",
+    "Deliver each ping to the rider’s phone as an APNs or FCM push notification."
+  ],
+  ans: 2,
+  sol: "Each connection carries almost no state (just which ride it follows), and one producer feeds one or two consumers per ride: the pub/sub sweet spot. Endpoint servers stay interchangeable, and the subscription lives only as long as the ride.\n\n(A) works, but pays for statefulness you don’t need; consistent hashing is for heavy per-connection state. (B) turns a push into an aggressive poll of a hot store, 10 queries a second per rider, mostly returning unchanged data. (D) misuses OS push, which is rate-limited, has no timeliness guarantee, and is built for alerts rather than a stream of locations every few seconds."
+});
+
+/* ---------------- WhatsApp ---------------- */
+Q.push({
+  k: "wa-1", sec: "wa", type: "single", tag: "WhatsApp",
+  q: "User A is connected to Chat Server 1 and sends a group message to B (also on Chat Server 1) and C (on Chat Server 2), as in the figure. Delivery to C goes through Redis Pub/Sub with one channel per user, which delivers at most once. Which order of steps on Chat Server 1 is correct?",
+  d: {
+    w: 680, h: 330, seed: 91, alt: "User A sends to Chat Server 1, which delivers locally to User B, writes to a Messages and Inbox store, and publishes to Redis Pub/Sub on channel user C. Chat Server 2 is subscribed and delivers to User C.",
+    el: [
+      { t: "box", id: "a", x: 8, y: 34, w: 100, h: 54, label: "User A", fill: "blue" },
+      { t: "box", id: "b", x: 8, y: 176, w: 100, h: 54, label: "User B", fill: "blue" },
+      { t: "box", id: "cs1", x: 180, y: 96, w: 132, h: 66, label: "Chat\nServer 1", fill: "purple" },
+      { t: "box", id: "cs2", x: 404, y: 96, w: 132, h: 66, label: "Chat\nServer 2", fill: "purple" },
+      { t: "box", id: "c", x: 580, y: 102, w: 94, h: 54, label: "User C", fill: "blue" },
+      { t: "db", id: "db", x: 180, y: 222, w: 132, h: 98, label: "Messages\n+ Inbox", fill: "green", fs: 16 },
+      { t: "box", id: "ps", x: 404, y: 244, w: 132, h: 62, label: "Redis\nPub/Sub", fill: "red" },
+      { t: "arrow", from: "a", to: "cs1", label: "sendMessage", lo: [10, -18] },
+      { t: "arrow", from: "cs1", to: "b", label: "newMessage", lo: [10, 16] },
+      { t: "arrow", from: "cs1", to: "db" },
+      { t: "arrow", from: "cs1", to: "ps", label: "publish\nuser:C", lo: [16, -8] },
+      { t: "arrow", from: "ps", to: "cs2", label: "user:C", lo: [32, 0] },
+      { t: "arrow", from: "cs2", to: "c" }
+    ]
+  },
+  o: [
+    "Publish to C’s channel, then write the message and C’s inbox entry, then return success to A.",
+    "Publish to C’s channel, wait for C’s client to acknowledge receipt, and only then write C’s inbox entry.",
+    "Write the message, publish to C’s channel, and write C’s inbox entry only if that publish call reports a failure.",
+    "Write the message and each recipient’s inbox entry, return success to A, then publish to each recipient."
+  ],
+  ans: 3,
+  sol: "Durability first, real time second. The message and a per-recipient inbox entry are written before anything is published, A gets SUCCESS, and only then is the publish attempted, as best-effort delivery. If the publish is dropped because nobody is subscribed or Redis hiccups, C still gets the message from the inbox on reconnect or on the next sync. The inbox entry is deleted only when C’s client acks receipt.\n\n(A) and (B) lose the message if the server crashes right after publishing. (C) depends on detecting a failed publish, but at-most-once pub/sub gives no delivery confirmation: a publish that “succeeds” may still reach nobody."
+});
+Q.push({
+  k: "wa-2", sec: "wa", type: "ar", tag: "WhatsApp",
+  a: "A Kafka topic per user is a poor way to route WhatsApp messages to chat servers.",
+  r: "Redis Pub/Sub delivers messages at most once.",
+  ans: 1,
+  sol: "Both are true, but R doesn’t explain A. A topic per user fails because Kafka isn’t built for billions of topics: each one carries persistent, on-disk overhead, on the order of 50 KB, which comes to about 50 TB for a billion users before a single message is stored. R is a true property of the alternative, and it explains why the inbox must be written first, but it says nothing about why Kafka topics don’t scale."
+});
+Q.push({
+  k: "wa-3", sec: "wa", type: "ar", tag: "WhatsApp",
+  a: "For a product dominated by 1:1 chats, pub/sub channels should be partitioned by chat rather than by user.",
+  r: "With channels per chat, a message to a 100-person group is published once instead of 99 times.",
+  ans: 3,
+  sol: "A is false and R is true. With 1:1 chats, a user in 250 chats would need 250 subscriptions on their chat server if channels were per chat, against exactly one if they were per user, and each message still goes to a single channel either way. R is the real advantage of per-chat channels, which is why the refined design uses chat-level channels only for chats above a size threshold (say 25 members) and user-level channels for everything else, publishing to both for a while when a chat crosses the threshold."
+});
+Q.push({
+  k: "wa-4", sec: "wa", type: "num", tag: "WhatsApp",
+  q: "200 million clients are connected. The heartbeat budget is at most 8 million pings a second across the fleet. Using the shortest heartbeat interval that fits the budget and a 5 s pong timeout, what is the worst-case time, in seconds, to detect a dead connection?",
+  ans: { v: 30, tol: 0, unit: "s" },
+  sol: "Pings per second = 200,000,000 ÷ interval ≤ 8,000,000, so the interval must be at least 25 s. The worst case is a connection that dies just after a successful pong: up to one full interval until the next ping, plus the timeout spent waiting for a pong that never comes. 25 + 5 = **30 s**.\n\nThe breakdown’s choice of a 10 s interval with a 5 s timeout gives a 15 s bound at 20 million pings a second, still affordable because the messages are tiny."
+});
+Q.push({
+  k: "wa-5", sec: "wa", type: "multi", tag: "WhatsApp",
+  q: "Redis Pub/Sub occasionally drops a message for a connected client. Which statements about detecting and repairing the gap are correct?",
+  o: [
+    "Periodic polling adds no meaningful load, so it can safely run every few seconds for every connected client.",
+    "With a per-chat sequence number, a gap is only noticed when a later message in that same chat arrives.",
+    "To show messages in a consistent order, clients should sort them by the sender device’s local clock.",
+    "Putting the user’s global sequence number in each heartbeat lets the client spot a gap within one heartbeat interval, even in a quiet chat."
+  ],
+  ans: [1, 3],
+  sol: "(A) Incorrect. With 200 million connected users, polling every 30 s is already about 7 million queries a second. Polling is a backstop with a tunable interval, not a free lunch.\n\n(B) Correct, and that is the weakness: if the last message in a chat is dropped and the chat goes quiet, gap checking alone never notices.\n\n(C) Incorrect. Sender clocks can’t be trusted. Servers, kept in sync with NTP, stamp the time they received each message, and clients sort by that, accepting that a message occasionally pops in above a later one.\n\n(D) Correct. This is the breakdown’s great solution: a per-user counter (Redis `INCR`) piggybacked on heartbeats, so the client compares and resyncs from the inbox when it is behind."
+});
+
+/* ---------------- Robinhood ---------------- */
+Q.push({
+  k: "rh-1", sec: "rh", type: "single", tag: "Robinhood",
+  q: "In the figure, the exchange pushes every trade to a Price Processor, which publishes the latest price to a pub/sub channel per symbol, and SSE servers hold the client connections. Why is this better than having every SSE server consume the full exchange feed itself?",
+  d: {
+    w: 720, h: 290, seed: 101, alt: "Exchange trade feed to Price Processor to a pub/sub with one channel per symbol. SSE server 1 subscribes to AAPL and META; SSE server 2 subscribes to TSLA.",
+    el: [
+      { t: "box", id: "ex", x: 8, y: 110, w: 112, h: 68, label: "Exchange\ntrade feed", fill: "gray", fs: 16 },
+      { t: "box", id: "pp", x: 182, y: 110, w: 130, h: 68, label: "Price\nProcessor", fill: "purple", fs: 16 },
+      { t: "box", id: "ps", x: 374, y: 96, w: 140, h: 96, label: "Pub/Sub\nchannel per\nsymbol", fill: "red", fs: 16 },
+      { t: "box", id: "s1", x: 566, y: 22, w: 146, h: 68, label: "SSE server 1\nAAPL, META", fill: "blue", fs: 16 },
+      { t: "box", id: "s2", x: 566, y: 198, w: 146, h: 68, label: "SSE server 2\nTSLA", fill: "blue", fs: 16 },
+      { t: "arrow", from: "ex", to: "pp", label: "trades", lo: [0, -16] },
+      { t: "arrow", from: "pp", to: "ps", label: "prices", lo: [0, -16] },
+      { t: "arrow", from: "ps", to: "s1", label: "AAPL, META", lo: [14, 18] },
+      { t: "arrow", from: "ps", to: "s2", label: "TSLA", lo: [-12, 12] },
+      { t: "text", x: 639, y: 282, s: "its clients", fs: 14, c: "muted" },
+      { t: "text", x: 639, y: 106, s: "its clients", fs: 14, c: "muted" }
+    ]
+  },
+  o: [
+    "Pub/sub keeps a log of recent prices, so a client that reconnects can replay the full price history from the channel.",
+    "Each SSE server subscribes only to the symbols its own clients watch, so its load tracks their interest, not the market.",
+    "Per-symbol channels guarantee that every single trade reaches every interested client exactly once, in order.",
+    "SSE needs a dedicated pub/sub channel for every client connection, so per-symbol channels are the only workable layout."
+  ],
+  ans: 1,
+  sol: "Each server keeps a local map from symbol to the set of SSE connections watching it, subscribes to a symbol’s channel when its first client asks for it, and unsubscribes when the last one leaves. Inbound work is proportional to the distinct symbols in use on that server, and the raw exchange feed is consumed once rather than once per server.\n\n(A) and (C) are false for Redis-style pub/sub, which has no persistence and delivers at most once. That is fine for prices, because the next tick supersedes the last. (D) is backwards: one channel serves every client watching that symbol."
+});
+Q.push({
+  k: "rh-2", sec: "rh", type: "single", tag: "Robinhood",
+  q: "Robinhood users watch live prices and occasionally place or cancel orders. Which pairing of client protocols fits the two flows best?",
+  o: [
+    "WebSocket for both prices and orders, since both are latency-sensitive.",
+    "Long polling for prices, and a WebSocket for orders.",
+    "SSE for prices, and ordinary HTTP requests for placing and cancelling orders.",
+    "SSE for both prices and order placement, to keep a single connection per user."
+  ],
+  ans: 2,
+  sol: "Prices are a one-way, high-frequency stream from server to client: SSE. Orders are infrequent, need a definite answer (accepted, rejected, error), and benefit from standard HTTP tooling for auth, retries and idempotency keys. That is the pattern’s common pairing: SSE subscriptions for updates, POST or PUT for writes.\n\nA WebSocket (A) adds stateful bidirectional infrastructure with no high-frequency client-to-server stream to justify it. Long polling (B) is the wrong tool for rapidly ticking prices. (D) is impossible, because SSE carries nothing from client to server."
+});
+Q.push({
+  k: "rh-3", sec: "rh", type: "multi", tag: "Robinhood",
+  q: "Design reasoning beyond the breakdown: a hot symbol trades 5,000 times a second, and the client UI repaints prices at most about 4 times a second. Which statements are correct?",
+  o: [
+    "Every trade must be pushed to every viewer, or the displayed price will drift away from the market.",
+    "Coalescing only works over WebSocket, because SSE delivers every event the server writes.",
+    "The server can coalesce updates to the latest price per symbol per window, say every 250 ms, without making the displayed price wrong.",
+    "Coalescing cuts per-connection egress for hot symbols by orders of magnitude."
+  ],
+  ans: [2, 3],
+  sol: "(A) Incorrect. Ticks within a 250 ms window are overwritten before anyone could see them.\n\n(B) Incorrect. Coalescing happens on the server before it writes to the stream, so it doesn’t depend on the protocol.\n\n(C) Correct. A price display is last-write-wins: only the latest value in each window matters on screen. Charts are drawn from aggregated candles, not individual ticks.\n\n(D) Correct. 5,000 events a second become 4 per symbol per viewer, a reduction of about 1,250 times."
+});
+Q.push({
+  k: "rh-4", sec: "rh", type: "ar", tag: "Robinhood",
+  a: "Order-fill notifications can be driven by the exchange’s trade feed instead of by polling the exchange for order status.",
+  r: "The trade feed pushes an event for every trade, including the ID of the order it filled.",
+  ans: 0,
+  sol: "Both are true, and R explains A. The exchange interface assumed in the breakdown pushes each trade with its symbol, price, share count and order ID. A trade processor maps the exchange’s order ID back to the internal order and its user, updates the order’s status, and notifies the user over their existing real-time channel, with no status polling against the exchange. Recording each order internally before sending it to the exchange is what makes that lookup possible."
+});
+
+/* ---------------- Google Docs ---------------- */
+Q.push({
+  k: "gd-1", sec: "gd", type: "single", tag: "Google Docs",
+  q: "In the figure, every editor of document D7 is routed to the same Document Service instance, chosen by a consistent hash of the document ID. Why insist on this rather than letting editors connect anywhere and linking the servers with pub/sub?",
+  d: {
+    w: 680, h: 320, seed: 111, cap: "Every editor holds a WebSocket; the router hashes the document ID to find its owner.",
+    alt: "Three editors connect through a router that hashes the document ID. Editors of D7 go to Doc Service A; the editor of D2 goes to Doc Service B. The router consults a ZooKeeper ring. Both services append to an operation log.",
+    el: [
+      { t: "box", id: "e1", x: 8, y: 20, w: 118, h: 58, label: "Editor 1\non D7", fill: "blue", fs: 15 },
+      { t: "box", id: "e2", x: 8, y: 132, w: 118, h: 58, label: "Editor 2\non D7", fill: "blue", fs: 15 },
+      { t: "box", id: "e3", x: 8, y: 244, w: 118, h: 58, label: "Editor 3\non D2", fill: "blue", fs: 15 },
+      { t: "box", id: "rt", x: 182, y: 122, w: 136, h: 78, label: "Router\nhash(docId)", fill: "gray", fs: 16 },
+      { t: "box", id: "zk", x: 182, y: 252, w: 136, h: 52, label: "ZooKeeper ring", fill: "yellow", fs: 15 },
+      { t: "box", id: "da", x: 380, y: 34, w: 166, h: 66, label: "Doc Service A\nowns D7", fill: "purple", fs: 16 },
+      { t: "box", id: "dbb", x: 380, y: 214, w: 166, h: 66, label: "Doc Service B\nowns D2", fill: "purple", fs: 16 },
+      { t: "db", id: "log", x: 586, y: 102, w: 88, h: 116, label: "Op\nlog", fill: "green", fs: 16 },
+      { t: "arrow", from: "e1", to: "rt" }, { t: "arrow", from: "e2", to: "rt" }, { t: "arrow", from: "e3", to: "rt" },
+      { t: "arrow", from: "rt", to: "da", label: "D7" }, { t: "arrow", from: "rt", to: "dbb", label: "D2" },
+      { t: "arrow", from: "rt", to: "zk", dash: true, two: true },
+      { t: "arrow", from: "da", to: "log" }, { t: "arrow", from: "dbb", to: "log" }
+    ]
+  },
+  o: [
+    "OT needs one authority per document to order concurrent edits, and its loaded state is costly to rebuild elsewhere.",
+    "WebSocket messages can’t be relayed between servers, so every editor of a document has to share one socket server.",
+    "Pub/sub brokers can’t carry the binary payloads that edit operations need, so routing must be direct server to server.",
+    "Pinning each document to one server means its operations no longer need to be persisted to an operation log."
+  ],
+  ans: 0,
+  sol: "With OT, the server receives concurrent operations, puts them in a single order, and transforms later operations against earlier ones before broadcasting. That needs one place where all of a document’s operations meet. The document’s in-memory state, the current text plus pending operations, is also costly to load and keep in sync. Those are the pattern’s exact criteria for consistent hashing: heavy per-connection state that should live in one place, with only a fraction of documents moving when the fleet scales.\n\nPub/sub suits servers that are interchangeable relays; here they aren’t. (B) and (C) are false statements, and (D) is wrong because the operation log is still the durable record."
+});
+Q.push({
+  k: "gd-2", sec: "gd", type: "multi", tag: "Google Docs",
+  q: "Document servers are added to the ring during peak hours. Which steps belong in a safe scaling procedure?",
+  o: [
+    "Signal the start of the scaling event and record both the old and the new assignments.",
+    "While documents move, deliver operations to both the old and the new owner.",
+    "When migration finishes, write the new assignments to the coordination service and end the event.",
+    "Disconnect every affected client at the same moment, so the transition is as short as possible."
+  ],
+  ans: [0, 1, 2],
+  sol: "(A), (B) and (C) are the orchestration the pattern describes: the system knows both maps during the transition, clients move over gradually, operations go to both owners until the move completes, and the final assignment is committed at the end.\n\n(D) is the classic mistake. A mass disconnect creates a thundering herd of reconnects and document reloads hitting the new owners all at once; clients should be drained slowly."
+});
+Q.push({
+  k: "gd-3", sec: "gd", type: "single", tag: "Google Docs",
+  q: "Cursor positions and presence (who is viewing) change many times a second per user. How should the design handle them compared with document edits?",
+  o: [
+    "Append every cursor move to the operation log, so collaborators can replay exactly how others moved through the text.",
+    "Store them in the database alongside the document, and have every client poll for them about once a second.",
+    "Send them over a separate SSE stream, so cursor traffic never competes with document edits on the same socket.",
+    "Keep them in the document server’s memory and broadcast them over the existing sockets; drop them when users leave."
+  ],
+  ans: 3,
+  sol: "Cursor and presence data is ephemeral: only the latest value matters, it is meaningless once the user leaves, and losing an update is harmless because another arrives a moment later. It belongs in the memory of the server that already owns the document and its connections, fanned out over sockets that are already open.\n\nPersisting it (A, B) multiplies write volume for no durable value. A second stream (C) adds a connection and a synchronization problem, and since clients also send their own cursor, a one-way channel doesn’t fit anyway."
+});
+Q.push({
+  k: "gd-4", sec: "gd", type: "ar", tag: "Google Docs",
+  a: "CRDTs suit peer-to-peer (WebRTC) collaboration better than operational transformation does.",
+  r: "CRDTs usually store extra metadata for every character, so CRDT documents take more space than plain text.",
+  ans: 1,
+  sol: "Both are true, but R doesn’t explain A. CRDTs fit peer-to-peer because replicas converge to the same state no matter what order they apply operations in, with no central server needed to order them; OT’s correctness depends on exactly that central authority. R is a real cost of CRDTs (per-character identifiers and tombstones), but it is a drawback, not the reason they suit P2P. The pattern mentions WebRTC plus CRDTs as a way to take collaborative traffic off servers."
+});
+
+/* ---------------- Strava ---------------- */
+Q.push({
+  k: "sv-1", sec: "sv", type: "single", tag: "Strava",
+  q: "Strava favors availability over consistency and must work where there is no signal, so the athlete’s phone records points locally and uploads them in periodic batches. Friends want to follow a run live. Which approach fits best?",
+  o: [
+    "A WebSocket per friend, so the server can push every GPS point the instant it is recorded.",
+    "Friends poll for the activity’s latest points at roughly the athlete’s upload cadence.",
+    "A WebRTC connection from the athlete’s phone to each friend’s phone.",
+    "SSE to each friend, opening a new stream for every GPS point."
+  ],
+  ans: 1,
+  sol: "The server can never know a point before the athlete’s next upload, so freshness is capped by the upload interval. Pushing faster than you ingest buys nothing, and a follower happily tolerates a few seconds of lag. Polling at about the upload cadence delivers nearly the same freshness with stateless, cacheable HTTP and none of the connection infrastructure.\n\n(A) and (D) promise an immediacy the data path can’t deliver. (C) drains the athlete’s battery and fails whenever the athlete has no connectivity, which is the very case the design must handle."
+});
+Q.push({
+  k: "sv-2", sec: "sv", type: "num", tag: "Strava",
+  q: "An athlete’s phone uploads buffered points every 10 s. A friend’s app polls every 10 s, and the two schedules are not synchronized. Ignoring network time, what is the worst-case age, in seconds, of a point at the moment the friend first sees it?",
+  ans: { v: 20, tol: 0, unit: "s" },
+  sol: "Worst case: the point is recorded just after an upload, so it waits almost 10 s for the next one. That upload lands just after the friend’s poll, so it waits almost another 10 s for the following poll. The total approaches 10 + 10 = **20 s**.\n\nPushing over SSE would remove the second term, leaving a worst case of about 10 s. The first term is set by the athlete’s phone, and no protocol on the friend’s side can remove it; the lever is a shorter upload interval, paid for in battery.",
+  sd: {
+    w: 640, h: 236, seed: 121, alt: "Timeline of uploads at 0, 10 and 20 seconds and polls just before 10 and 20 seconds. A point recorded just after 0 waits about 10 seconds for an upload and about 10 more for a poll.",
+    el: [
+      { t: "text", x: 62, y: 70, s: "uploads", a: "end", c: "muted" },
+      { t: "text", x: 62, y: 150, s: "polls", a: "end", c: "muted" },
+      { t: "line", pts: [[70, 70], [606, 70]], sc: "muted", sw: 1 },
+      { t: "line", pts: [[70, 150], [606, 150]], sc: "muted", sw: 1 },
+      { t: "line", pts: [[70, 56], [70, 84]], sc: "hblue", sw: 2.6 },
+      { t: "line", pts: [[280, 56], [280, 84]], sc: "hblue", sw: 2.6 },
+      { t: "line", pts: [[490, 56], [490, 84]], sc: "hblue", sw: 2.6 },
+      { t: "line", pts: [[270, 136], [270, 164]], sc: "hgreen", sw: 2.6 },
+      { t: "line", pts: [[480, 136], [480, 164]], sc: "hgreen", sw: 2.6 },
+      { t: "dot", x: 80, y: 70, r: 5, fill: "hred", label: "point recorded", lo: [4, -24] },
+      { t: "arrow", from: [82, 104], to: [278, 104], label: "≈10 s until next upload", sc: "hred" },
+      { t: "arrow", from: [282, 122], to: [478, 122], label: "≈10 s until next poll", sc: "hred" },
+      { t: "text", x: 480, y: 180, s: "friend sees it", fs: 14, c: "hgreen" },
+      { t: "line", pts: [[70, 204], [606, 204]], sc: "muted", sw: 1 },
+      { t: "text", x: 70, y: 222, s: "0 s", fs: 14, c: "muted" },
+      { t: "text", x: 280, y: 222, s: "10 s", fs: 14, c: "muted" },
+      { t: "text", x: 490, y: 222, s: "20 s", fs: 14, c: "muted" }
+    ]
+  }
+});
+Q.push({
+  k: "sv-3", sec: "sv", type: "multi", tag: "Strava",
+  q: "Which statements about Strava’s in-activity experience are correct?",
+  o: [
+    "Distance, pace and elapsed time shown to the athlete are computed on the device, so they stay accurate with no network.",
+    "To meet the requirements, the app must keep a WebSocket open to the server for the whole activity.",
+    "The server should be the source of truth for in-run stats, so the app fetches them every few seconds.",
+    "GPS points are buffered on the device and synced when connectivity returns."
+  ],
+  ans: [0, 3],
+  sol: "The non-functional requirements say the app must work without connectivity and must show accurate, up-to-date local statistics during the activity. That makes the device the source of truth while the activity runs: compute stats locally (A) and buffer points for later sync (D).\n\nA persistent connection (B) is neither required nor achievable in remote areas, and server-computed stats (C) would freeze the moment the signal drops."
+});
+
+/* ---------------- Online Auction ---------------- */
+Q.push({
+  k: "oa-1", sec: "oa", type: "single", tag: "Online Auction",
+  q: "Viewers of auction #42 hold SSE connections spread across several Bid Service servers, as in the figure. A bid placed through server 1 is accepted. How do viewers connected to server 2 learn the new highest bid?",
+  d: {
+    w: 690, h: 306, seed: 131, alt: "A bidder posts a bid to Bid Service server 1, which writes to the bids database and publishes on channel auction 42. Server 2 is subscribed and pushes over SSE to its viewers; server 1 pushes to its own viewers.",
+    el: [
+      { t: "box", id: "bd", x: 8, y: 22, w: 110, h: 54, label: "Bidder", fill: "blue" },
+      { t: "box", id: "va", x: 8, y: 228, w: 120, h: 60, label: "Viewers on\nserver 1", fill: "blue", fs: 15 },
+      { t: "box", id: "s1", x: 182, y: 118, w: 144, h: 66, label: "Bid Service\nserver 1", fill: "purple", fs: 16 },
+      { t: "db", id: "db", x: 378, y: 6, w: 132, h: 90, label: "Bids DB", fill: "green", fs: 16 },
+      { t: "box", id: "ps", x: 378, y: 204, w: 132, h: 62, label: "Pub/Sub", fill: "red" },
+      { t: "box", id: "s2", x: 540, y: 118, w: 144, h: 66, label: "Bid Service\nserver 2", fill: "purple", fs: 16 },
+      { t: "box", id: "vb", x: 556, y: 238, w: 128, h: 60, label: "Viewers on\nserver 2", fill: "blue", fs: 15 },
+      { t: "arrow", from: "bd", to: "s1", label: "POST bid" },
+      { t: "arrow", from: "s1", to: "db", label: "write" },
+      { t: "arrow", from: "s1", to: "ps", label: "auction:42", lo: [-30, 18] },
+      { t: "arrow", from: "ps", to: "s2", label: "auction:42", lo: [34, 18] },
+      { t: "arrow", from: "s1", to: "va", label: "SSE", sc: "hblue" },
+      { t: "arrow", from: "s2", to: "vb", label: "SSE", sc: "hblue", lo: [22, 0] }
+    ]
+  },
+  o: [
+    "Server 1 writes the bid to the database, and server 2’s viewers pick it up on their next page load.",
+    "Server 1 publishes the new high bid on channel auction:42; servers with viewers of #42 forward it over SSE.",
+    "The load balancer copies each bid request to every Bid Service server, and each one notifies its own viewers.",
+    "Server 1 opens its own SSE connections to the viewers on server 2 and writes the new high bid to them directly."
+  ],
+  ans: 1,
+  sol: "This is push via pub/sub with the auction ID as the topic. Each server keeps a local map from auction ID to SSE connections, subscribes when its first viewer of an auction arrives, and unsubscribes when the last one leaves. The bid is written durably first; the publish is only the notification. Per-connection state is tiny, so there is no case for consistent hashing, and servers stay interchangeable.\n\n(A) isn’t real time. (C) would process every bid many times over. (D) misunderstands connections: a server can only write to connections it holds."
+});
+Q.push({
+  k: "oa-2", sec: "oa", type: "ar", tag: "Online Auction",
+  a: "The displayed highest bid may lag by a moment, but accepting a bid must be strongly consistent.",
+  r: "Accepting a bid means comparing it with the true current maximum under concurrent writers, whereas a stale display only delays when a viewer sees a bid.",
+  ans: 0,
+  sol: "Both are true, and R explains A. Two bids racing on the same auction must be checked against the real maximum, with a row lock or an optimistic check on the auction’s max bid, or you will accept a lower bid after a higher one. Showing the new maximum to viewers is a notification about a decision already made: if it arrives a beat late or is dropped, the next update or a refresh corrects it, and a bid placed against a stale view is simply rejected by the consistent write path."
+});
+Q.push({
+  k: "oa-3", sec: "oa", type: "multi", tag: "Online Auction",
+  q: "Bids on one hot auction must be processed in a consistent order. Which statements are correct?",
+  o: [
+    "Vector clocks are the expected way to order bids in a product-style interview.",
+    "Partitioning the bid stream by auction ID gives each auction a single ordered log.",
+    "If all of an auction’s bids pass through one host, stamping them there gives a total order simply.",
+    "Partitioning the bid stream by bidder ID preserves the order of bids within each auction."
+  ],
+  ans: [1, 2],
+  sol: "(A) Incorrect. Vector clocks belong in deep infrastructure discussions, not an auction design. The pattern says so directly.\n\n(B) and (C) Correct. This is the pattern’s recommendation for product-style designs: funnel related messages through one partition or host and you get a total order cheaply, trading some scalability for simplicity.\n\n(D) Incorrect. Partitioning by bidder scatters one auction’s bids across partitions, so their relative order is lost."
+});
+
+/* ---------------- FB Live Comments ---------------- */
+Q.push({
+  k: "fl-1", sec: "fl", type: "ar", tag: "FB Live Comments",
+  a: "For viewers of a live video, SSE is a better fit than WebSockets.",
+  r: "Every WebSocket message carries a full set of HTTP headers, which makes it heavier than an SSE event.",
+  ans: 2,
+  sol: "A is true. Posting a comment is rare compared with reading comments, so a two-way channel per viewer is overhead without benefit: comments go out with a plain `POST /comments/:liveVideoId`, and SSE carries the read stream. R is false. After the upgrade, WebSocket frames carry only a few bytes of framing and no HTTP headers; low per-message overhead is one of WebSocket’s strengths."
+});
+Q.push({
+  k: "fl-2", sec: "fl", type: "single", tag: "FB Live Comments",
+  q: "The figure shows partitioned pub/sub: comments are published to `hash(liveVideoId) % N` channels, and an L7 load balancer routes viewers by a consistent hash of `liveVideoId`. What would go wrong if the balancer used plain round robin instead?",
+  d: {
+    w: 700, h: 330, seed: 141, alt: "Viewers of V1, V2 and V3 pass through an L7 load balancer hashing the video ID. Viewers of V1 and V2 land on realtime server 1, viewers of V3 on realtime server 2. Each server subscribes to a few of N pub/sub channels, into which Comment Management publishes.",
+    el: [
+      { t: "box", id: "v1", x: 8, y: 22, w: 120, h: 52, label: "Viewers of V1", fill: "blue", fs: 15 },
+      { t: "box", id: "v2", x: 8, y: 140, w: 120, h: 52, label: "Viewers of V2", fill: "blue", fs: 15 },
+      { t: "box", id: "v3", x: 8, y: 258, w: 120, h: 52, label: "Viewers of V3", fill: "blue", fs: 15 },
+      { t: "box", id: "lb", x: 174, y: 124, w: 130, h: 84, label: "L7 LB\nhash(videoId)", fill: "gray", fs: 16 },
+      { t: "box", id: "r1", x: 352, y: 40, w: 146, h: 64, label: "Realtime\nserver 1", fill: "purple", fs: 16 },
+      { t: "box", id: "r2", x: 352, y: 228, w: 146, h: 64, label: "Realtime\nserver 2", fill: "purple", fs: 16 },
+      { t: "box", id: "ps", x: 546, y: 100, w: 146, h: 98, label: "Pub/Sub\nN channels", fill: "red", fs: 16 },
+      { t: "box", id: "cm", x: 546, y: 250, w: 146, h: 60, label: "Comment\nManagement", fill: "orange", fs: 16 },
+      { t: "arrow", from: "v1", to: "lb" }, { t: "arrow", from: "v2", to: "lb" }, { t: "arrow", from: "v3", to: "lb" },
+      { t: "arrow", from: "lb", to: "r1", label: "V1, V2", lo: [-18, -14] }, { t: "arrow", from: "lb", to: "r2", label: "V3", lo: [-14, 12] },
+      { t: "arrow", from: "ps", to: "r1", label: "ch 3, ch 7", lo: [8, -22] }, { t: "arrow", from: "ps", to: "r2", label: "ch 5", lo: [10, 16] },
+      { t: "arrow", from: "cm", to: "ps", label: "publish", lo: [32, 0] }
+    ]
+  },
+  o: [
+    "Each server would host viewers of many videos and subscribe to most channels, so every server sees nearly every comment.",
+    "Comments for a single video would start reaching its viewers out of order, because round robin reshuffles subscriptions.",
+    "Viewers could no longer post comments, because the comment-posting path relies on the load balancer’s video hash.",
+    "SSE connections would start failing, because round-robin balancing is only available on Layer 4 load balancers."
+  ],
+  ans: 0,
+  sol: "Partitioned channels only help if each server needs few of them. Co-location, meaning viewers of the same video land on the same server through consistent hashing in an L7 balancer such as NGINX or Envoy, or through a mapping kept in ZooKeeper, is what keeps each server’s subscription set small. With round robin, every server collects a random mix of videos and ends up subscribed to nearly all N channels, which brings back the naive design.\n\n(B) Ordering doesn’t depend on placement. (C) Posting goes through the Comment Management Service, untouched. (D) Round robin is available at L7 too."
+});
+Q.push({
+  k: "fl-3", sec: "fl", type: "num", tag: "FB Live Comments",
+  q: "A mega-stream receives 2,500 comments a second, and the client shows the 25 most recent comments. If every comment were displayed, roughly how long, in milliseconds, would each stay on screen?",
+  ans: { v: 10, tol: 0, unit: "ms" },
+  sol: "The visible window turns over completely every 25 ÷ 2,500 = 0.01 s, so each comment survives about **10 ms**, far below what anyone can read. At this volume viewers experience the crowd’s mood, not individual comments, and that changes the requirements: sample a representative subset (1 to 2 % at thousands a second), or switch to CDN snapshots and give up sub-200 ms latency."
+});
+Q.push({
+  k: "fl-4", sec: "fl", type: "multi", tag: "FB Live Comments",
+  q: "Above roughly 100,000 viewers or 500 comments a second, the design switches a stream from SSE to clients polling CDN snapshots. Which statements about that mode are correct?",
+  o: [
+    "A single hard threshold with no hysteresis is fine, because viewer counts change slowly.",
+    "A ring buffer of the latest 100 to 200 comments is snapshotted about every second to the CDN origin.",
+    "Clients spread each new snapshot’s comments across the polling interval so the feed looks continuous.",
+    "A viewer’s own comment is inserted into their feed right away on the client, independent of the CDN."
+  ],
+  ans: [1, 2, 3],
+  sol: "(A) Incorrect. A viewer count hovering near the cutoff would make the stream flap between modes, so the switch needs hysteresis, with different thresholds for switching up and down.\n\n(B) Correct. The snapshot is just another cacheable object, and serving the same object to millions is what CDNs are for.\n\n(C) Correct. Dumping a batch every second would look janky, so clients animate the comments in, optionally spaced by their timestamps.\n\n(D) Correct. Read-your-own-writes is preserved locally, even though everyone else sees the comment a second or two later."
+});
+Q.push({
+  k: "fl-5", sec: "fl", type: "single", tag: "FB Live Comments",
+  q: "A viewer’s phone drops off Wi-Fi for 8 s and reconnects through the load balancer to a different realtime server, sending `Last-Event-ID`. What lets the new server replay the missed comments?",
+  o: [
+    "The old server forwards its in-memory buffer of recent comments to the new server when asked.",
+    "The CDN, which caches every SSE event the servers emit, keyed by event ID.",
+    "A shared cache of recent comments per video, such as Redis, that any server can read.",
+    "The browser resends the comments it already received from the old server."
+  ],
+  ans: 2,
+  sol: "`Last-Event-ID` only tells the server where the client left off; the new server still needs somewhere to read recent history from. Since landing on a different server is the norm under load balancing, that history has to live in shared storage. Replay should also be bounded (the breakdown suggests about the last 5 minutes) with graceful degradation for longer gaps, and the client deduplicates by comment ID where the SSE stream and an HTTP catch-up overlap."
+});
+
+/* ---------------- Online Chess ---------------- */
+Q.push({
+  k: "oc-1", sec: "oc", type: "single", tag: "Online Chess",
+  q: "In three-minute blitz the server validates every move and owns both clocks. Why is a WebSocket per player the natural transport, rather than SSE for updates plus an HTTP POST for each move?",
+  o: [
+    "SSE can push to only one client per game, so the second player would need a separate channel of some other kind.",
+    "HTTP request bodies can’t carry chess notation such as SAN or UCI without a custom binary encoding scheme.",
+    "WebSockets let each client validate moves locally, so the server can skip move validation and clock checks entirely.",
+    "Both sides send latency-sensitive messages, and one ordered two-way channel avoids per-move requests and ordering races."
+  ],
+  ans: 3,
+  sol: "Each move is a client-to-server message the opponent must see within a fraction of a second, and clock state flows the other way: genuine two-way, latency-critical traffic. With SSE plus POST, every move pays HTTP request overhead, and the response to your POST and the SSE event about the same move travel on different channels that can arrive in either order. One socket per player gives one ordered stream in each direction. Lichess, for example, runs gameplay over WebSockets.\n\n(C) gets the requirement backwards: the server stays authoritative precisely because clients can’t be trusted. (A) and (B) are false."
+});
+Q.push({
+  k: "oc-2", sec: "oc", type: "single", tag: "Online Chess",
+  q: "The target is 500,000 concurrent games, or 1 million player connections. In the figure both players of game G are connected to the game server that owns G. Which routing approach matches the pattern’s guidance?",
+  d: {
+    w: 640, h: 276, seed: 151, alt: "Both players connect over WebSockets to a gateway that routes by game ID to game server 1, which owns game G. The gateway asks ZooKeeper which server owns G.",
+    el: [
+      { t: "box", id: "w", x: 8, y: 24, w: 118, h: 60, label: "Player\n(white)", fill: "blue", fs: 16 },
+      { t: "box", id: "b", x: 8, y: 186, w: 118, h: 60, label: "Player\n(black)", fill: "blue", fs: 16 },
+      { t: "box", id: "gw", x: 196, y: 96, w: 140, h: 76, label: "Gateway\nroute by gameId", fill: "gray", fs: 15 },
+      { t: "box", id: "zk", x: 196, y: 218, w: 140, h: 50, label: "ZooKeeper", fill: "yellow", fs: 16 },
+      { t: "box", id: "g1", x: 432, y: 24, w: 196, h: 68, label: "Game server 1\nowns game G", fill: "purple", fs: 16 },
+      { t: "box", id: "g2", x: 432, y: 178, w: 196, h: 68, label: "Game server 2", fill: "gray", fs: 16 },
+      { t: "arrow", from: "w", to: "gw", label: "WebSocket" },
+      { t: "arrow", from: "b", to: "gw", label: "WebSocket" },
+      { t: "arrow", from: "gw", to: "g1", label: "game G" },
+      { t: "arrow", from: "gw", to: "zk", dash: true, label: "owner of G?", lo: [50, 0] }
+    ]
+  },
+  o: [
+    "Let players connect to any game server and relay every move between servers through a pub/sub channel per game.",
+    "Run each game on whichever server the white player connects to, and forward black’s moves to it over HTTP.",
+    "Give each game an owner server (say, by consistent hashing on game ID) and connect both players to it.",
+    "Keep the board in the database and let whichever server receives a move load the game, apply the move and save it."
+  ],
+  ans: 2,
+  sol: "A game is a small but authoritative state machine: the board, move legality and two running clocks. That state should live in exactly one place, and the pattern’s answer to “this state lives on one server” is consistent hashing with a coordination service, the same reasoning as Google Docs. With both players connected to the owner, a move is validated and relayed inside one process.\n\n(A) splits authority or adds a hop to every move. (B) is ad hoc and has no answer for failover. (D) puts a database round trip inside every move and still needs coordination to stop two servers acting on one game."
+});
+Q.push({
+  k: "oc-3", sec: "oc", type: "num", tag: "Online Chess",
+  q: "At peak there are 500,000 concurrent games. An average game lasts 300 s and has 80 plies (single moves). Each ply produces two outbound WebSocket messages: the move to the opponent, and an acknowledgement with updated clocks to the mover. How many outbound messages per second, in thousands, does the fleet send?",
+  ans: { v: 266.67, tol: 0.5, unit: "thousand per second" },
+  sol: "Plies per second per game = 80 ÷ 300 ≈ 0.267, so the fleet handles 500,000 × 0.267 ≈ 133,333 plies a second. Two outbound messages each gives ≈ **266.7 thousand** messages a second.\n\nSpread over 1 million connections, that is under 0.3 messages per connection per second. Chess is connection-heavy and message-light, so the limits to watch are connection count, memory per game and failover, not raw throughput."
+});
+Q.push({
+  k: "oc-4", sec: "oc", type: "num", tag: "Online Chess",
+  q: "Player A’s round-trip time to the game server is 300 ms. The server naively charges A’s clock from the moment it sends the opponent’s move until A’s reply arrives. Over 40 of A’s moves, how many seconds of A’s three-minute clock are lost purely to the network?",
+  ans: { v: 12, tol: 0, unit: "s" },
+  sol: "Each charged turn is A’s real thinking time plus one full round trip: 150 ms for the opponent’s move to reach A and 150 ms for A’s reply to come back. 40 × 0.3 s = **12 s**, about 7 % of a 180 s clock, a real handicap against an opponent on 20 ms.\n\nThe fix is lag compensation: measure each player’s latency, credit back the estimated transit time, and cap the credit so nobody can fake lag to gain time. The server stays authoritative; it just stops billing players for the network.",
+  sd: {
+    w: 640, h: 330, seed: 161, alt: "Timeline: the server sends the opponent’s move, which takes 150 ms to reach player A. A thinks, then replies; the reply takes 150 ms to arrive. The server charges thinking time plus 300 ms.",
+    el: [
+      { t: "box", x: 140, y: 6, w: 120, h: 36, label: "Server", fill: "purple", fs: 16 },
+      { t: "box", x: 460, y: 6, w: 120, h: 36, label: "Player A", fill: "blue", fs: 16 },
+      { t: "line", pts: [[200, 42], [200, 318]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "line", pts: [[520, 42], [520, 318]], dash: true, sc: "muted", sw: 1.1 },
+      { t: "arrow", from: [202, 70], to: [518, 126], label: "opponent’s move, 150 ms", lo: [0, -14] },
+      { t: "arrow", from: [518, 236], to: [202, 292], label: "A’s move, 150 ms", lo: [0, -14] },
+      { t: "line", pts: [[548, 126], [548, 236]], arrow: true, two: true, sc: "hgreen", sw: 1.4 },
+      { t: "text", x: 558, y: 181, s: "thinking", a: "start", c: "hgreen" },
+      { t: "line", pts: [[172, 70], [172, 292]], arrow: true, two: true, sc: "hred", sw: 1.4 },
+      { t: "text", x: 160, y: 181, s: "charged:\nthinking\n+ 300 ms", a: "end", c: "hred" }
+    ]
+  }
+});
+
+/* ---------------- ChatGPT ---------------- */
+Q.push({
+  k: "cg-1", sec: "cg", type: "single", tag: "ChatGPT",
+  q: "ChatGPT streams a response token by token: the prompt goes up in a POST and the response flows back while it is generated. Which transport fits best, and why?",
+  o: [
+    "SSE: output flows one way over plain HTTP, and time to first token is what users feel.",
+    "WebSocket: the token stream is bidirectional, because the client must acknowledge every token it receives.",
+    "Long polling: one request per token keeps every response small, cacheable and easy to retry.",
+    "Simple polling every 2 s: fetch the text accumulated so far and re-render the whole answer."
+  ],
+  ans: 0,
+  sol: "While a response is generating, data only flows from server to client, so a streamed HTTP response (SSE) is the natural fit; the pattern names AI chat as SSE’s most popular use today. Streaming makes the first tokens appear quickly, and that is what users perceive as speed.\n\nA WebSocket (B) works, but buys a duplex channel the flow doesn’t need; clients don’t ack tokens. Long polling per token (C) adds a round trip per token. Polling (D) adds up to 2 s of staleness and loses the typing effect."
+});
+Q.push({
+  k: "cg-2", sec: "cg", type: "num", tag: "ChatGPT",
+  q: "Peak load is 25,000 prompts a second, and the average response streams for 7.2 s. How many response streams, in thousands, are open at any moment?",
+  ans: { v: 180, tol: 0, unit: "thousand" },
+  sol: "Little’s law: items in the system = arrival rate × time in the system = 25,000 per second × 7.2 s = **180,000** concurrent streams. The breakdown’s own estimate uses the same logic, about 20,000 prompts a second at a few seconds each giving roughly 120,000 concurrent streams.\n\nThis sizes the streaming tier, which is separate from GPU capacity: model workers produce the tokens, and the SSE tier only relays them."
+});
+Q.push({
+  k: "cg-3", sec: "cg", type: "multi", tag: "ChatGPT",
+  q: "The figure shows generation decoupled from the client connection: a GPU worker appends tokens to a Redis Stream keyed by message ID, and an SSE server tails that stream. Which statements are correct?",
+  d: {
+    w: 690, h: 282, seed: 171, alt: "A GPU worker appends tokens to a Redis Stream. SSE server 1 tails the stream, and its connection to the client drops. The client reconnects to SSE server 2 with Last-Event-ID 2-0, and server 2 resumes reading from the stream after 2-0.",
+    el: [
+      { t: "box", id: "cl", x: 8, y: 110, w: 104, h: 60, label: "Client", fill: "blue" },
+      { t: "box", id: "s1", x: 184, y: 24, w: 142, h: 58, label: "SSE server 1", fill: "purple", fs: 16 },
+      { t: "box", id: "s2", x: 184, y: 206, w: 142, h: 58, label: "SSE server 2", fill: "purple", fs: 16 },
+      { t: "db", id: "rs", x: 400, y: 70, w: 164, h: 134, label: "Redis Stream\nmsg:{id}\n1-0, 2-0, 3-0 …", fill: "red", fs: 15 },
+      { t: "box", id: "gpu", x: 600, y: 110, w: 84, h: 60, label: "GPU\nworker", fill: "orange", fs: 16 },
+      { t: "arrow", from: "gpu", to: "rs", label: "XADD", lo: [0, -28] },
+      { t: "arrow", from: "rs", to: "s1", label: "tail" },
+      { t: "arrow", from: "s1", to: "cl", label: "dropped", dash: true, sc: "hred", lo: [-12, -18] },
+      { t: "arrow", from: "cl", to: "s2", label: "reconnect,\nLast-Event-ID 2-0", lo: [-34, 28] },
+      { t: "arrow", from: "rs", to: "s2", label: "after 2-0", lo: [10, 16] }
+    ]
+  },
+  o: [
+    "If the client’s connection drops, generation keeps running and its tokens keep accumulating in the stream.",
+    "To save GPU time, generation should be cancelled the instant any client connection closes.",
+    "Because every token entry has a monotonically increasing ID, a reconnecting client can resume from the last ID it received.",
+    "After a reconnect, the client must reach the same SSE server that started the stream."
+  ],
+  ans: [0, 2],
+  sol: "(A) Correct. That is the point of decoupling: a network blip, or a deploy of the streaming tier, doesn’t throw away a half-generated answer.\n\n(B) Incorrect. A dropped connection is usually a brief blip, so killing generation would break resumption. Cancel when the user explicitly stops, propagating that to the GPU worker, or after a grace period with no reader.\n\n(C) Correct. The client sends the last event ID it got (SSE’s `Last-Event-ID`), and the server reads the stream from just after that ID.\n\n(D) Incorrect. The tokens live in the shared stream, so any SSE server can serve the resumed connection."
+});
+Q.push({
+  k: "cg-4", sec: "cg", type: "single", tag: "ChatGPT",
+  q: "In production, users report that answers appear all at once after about 8 s instead of streaming, although server logs show tokens being flushed one at a time. Locally, streaming works. What is the most likely cause?",
+  o: [
+    "The model generates the full answer before flushing the first token, and only then starts streaming.",
+    "`EventSource` fires its message handler only once per HTTP response, after the response has finished.",
+    "SSE needs a WebSocket upgrade to stream through production load balancers and CDNs.",
+    "A proxy, load balancer or CDN in between is buffering the response until it completes."
+  ],
+  ans: 3,
+  sol: "Tokens leave the server one at a time yet arrive in a lump only in production, so something in between is buffering. The pattern calls this out as the nasty, opaque SSE failure: many proxies and load balancers buffer responses by default. The fix is configuration at every hop: turn off response buffering for the stream (for example `proxy_buffering off` in nginx, or the `X-Accel-Buffering: no` header), avoid compression middleware that waits for a full body, and send `Cache-Control: no-cache`.\n\n(A) contradicts the logs. (B) is false: the handler fires once per event. (C) is false: SSE is plain HTTP."
+});
+Q.push({
+  k: "cg-5", sec: "cg", type: "ar", tag: "ChatGPT",
+  a: "In the resumable design, closing the client’s SSE response is enough to stop generation and free the GPU.",
+  r: "In the resumable design, generation is decoupled from the client connection.",
+  ans: 3,
+  sol: "A is false and R is true; in fact R is why A is false. Because generation no longer depends on the connection, a closed stream is not a stop signal, and the worker keeps producing tokens into the buffer. Stopping takes an explicit cancel: the user’s stop request marks the run cancelled, and the worker checks between decoding steps and frees its slot. That is how scarce GPU capacity is actually reclaimed."
+});
+
+/* ---------------- Flash Sale ---------------- */
+Q.push({
+  k: "fs-1", sec: "fs", type: "single", tag: "Flash Sale",
+  q: "Nike drops 10,000 pairs at noon and tens of millions of users may try within seconds. The flow has users secure a reservation before paying. Why can’t a unit simply be held in an open database transaction while the user pays?",
+  o: [
+    "Relational databases can lock only whole tables, never single rows, so contention on one product would be total.",
+    "Payment takes seconds via a third party; long-held locks under a stampede exhaust connections and queue everyone.",
+    "Payment providers require that the inventory is released back to the pool before a card can be charged.",
+    "No database allows a single transaction to stay open across more than one HTTP request from the same user."
+  ],
+  ans: 1,
+  sol: "Database locks are meant to last milliseconds. Holding one for the seconds or minutes a payment takes, multiplied by a stampede, exhausts connections, builds lock queues and turns a fast inventory system into a traffic jam. The breakdown’s answer is a reservation: atomically take a unit off the table, with an expiry, in one short operation, then settle the money separately. It is the same idea as Ticketmaster’s ticket hold.\n\n(A) and (D) are false as stated, and (C) is invented."
+});
+Q.push({
+  k: "fs-2", sec: "fs", type: "num", tag: "Flash Sale",
+  q: "12 million users sit in the flash-sale waiting room. The server pushes a position update to every waiting user every 3 s over SSE, and each endpoint server can push at most 50,000 events a second. What is the minimum number of endpoint servers needed for these pushes?",
+  ans: { v: 80, tol: 0, unit: "servers" },
+  sol: "Events per second = 12,000,000 ÷ 3 = 4,000,000, and 4,000,000 ÷ 50,000 = **80** servers. Note the levers: pushing only when a user’s position moves meaningfully (say by 1 %), or slowing updates for people far back in line, cuts this sharply, because a position is display information, not a contract."
+});
+Q.push({
+  k: "fs-3", sec: "fs", type: "single", tag: "Flash Sale",
+  q: "Users who enter the waiting room in the last few minutes before noon are given random positions when the sale opens, instead of being ordered by arrival time. What is the main benefit?",
+  o: [
+    "It removes the edge of lower network latency and scripted bots firing at exactly 12:00:00.",
+    "It reduces the total number of users who end up waiting in the queue.",
+    "It guarantees that every user in the early window gets a pair.",
+    "It lets the system skip the reservation step, since order is already decided."
+  ],
+  ans: 0,
+  sol: "Strict first-come, first-served at millisecond resolution rewards whoever sits closest to the data center or runs the fastest script, not real customers. Randomizing positions among everyone who arrives in an early window turns that cohort’s outcome into a fair lottery while still rewarding showing up on time, and real-time position updates keep people informed afterwards. Fairness is one of the breakdown’s deep dives; this is one common way to deliver it.\n\nIt changes neither the number of people waiting (B) nor the inventory (C), and reservations (D) are still what prevents overselling."
+});
+Q.push({
+  k: "fs-4", sec: "fs", type: "multi", tag: "Flash Sale",
+  q: "The product page shows a live “remaining stock” indicator to millions of viewers. Which statements are correct?",
+  o: [
+    "The indicator must be strongly consistent with inventory, or the system will oversell.",
+    "The displayed count can be approximate and slightly stale, as long as the reservation step itself is atomic and authoritative.",
+    "Pushing every single decrement to every viewer is wasteful; coalesced updates once a second, or coarse levels such as “selling fast”, do the job.",
+    "The authoritative inventory counter should live in the CDN, close to users."
+  ],
+  ans: [1, 2],
+  sol: "(A) Incorrect. Overselling is prevented at write time, by an atomic decrement or a conditional reservation, never by what the page shows.\n\n(B) Correct. Because the write path is authoritative, the indicator is only a notification and can be eventually consistent.\n\n(C) Correct. 10,000 decrements pushed to 20 million viewers would be 200 billion messages, for a number nobody needs at that precision.\n\n(D) Incorrect. CDNs cache read copies; an authoritative counter there makes no sense."
+});
+
+/* ---------------- Across problems ---------------- */
+Q.push({
+  k: "xx-1", sec: "xx", type: "match", tag: "Across problems",
+  q: "Match each problem in List I with the main client-facing real-time mechanism its breakdown lands on (List II).",
+  m: {
+    l1: [["P", "WhatsApp message delivery"], ["Q", "FB Live Comments, for typical streams"], ["R", "Uber ride offers to drivers"], ["S", "Ticketmaster’s virtual waiting queue"]],
+    l2: [["1", "WebSocket"], ["2", "Server-Sent Events"], ["3", "Mobile push via APNs or FCM"], ["4", "WebRTC"]]
+  },
+  o: ["P→1, Q→1, R→3, S→1", "P→1, Q→2, R→3, S→2", "P→2, Q→2, R→1, S→2", "P→1, Q→2, R→4, S→3"],
+  ans: 1,
+  sol: "WhatsApp: high-frequency traffic in both directions (sends, receives, acks, chat updates) over WebSocket (P→1). FB Live Comments: read-heavy, so SSE plus POST (Q→2), switching to CDN snapshot polling for mega-streams. Uber: OS push, so backgrounded apps still receive offers (R→3). Ticketmaster’s queue: position updates only flow from server to client, so SSE is the simpler fit, with WebSocket as an option if two-way needs appear (S→2)."
+});
+Q.push({
+  k: "xx-2", sec: "xx", type: "match", tag: "Across problems",
+  q: "Match each problem in List I with the server-side approach in List II that best fits how its updates reach the right place.",
+  m: {
+    l1: [["P", "Google Docs collaborative editing"], ["Q", "WhatsApp at billions of users (great solution)"], ["R", "FB Live mega-streams"], ["S", "Strava live sharing with friends"]],
+    l2: [["1", "Consistent hashing of an entity to an owner server"], ["2", "Pub/sub with a channel per user"], ["3", "Snapshots pushed to a CDN that clients poll"], ["4", "Clients poll stored data at about the producer’s cadence"]]
+  },
+  o: ["P→2, Q→1, R→3, S→4", "P→1, Q→2, R→4, S→3", "P→1, Q→2, R→3, S→4", "P→1, Q→1, R→3, S→2"],
+  ans: 2,
+  sol: "Google Docs pins each document to one server, because OT and the document’s state need a single owner (P→1). WhatsApp’s great solution offloads routing to Redis Pub/Sub with per-user channels; consistent hashing is rated only good there because of the orchestration it demands (Q→2). Mega-streams flip to pull-based CDN snapshots (R→3). Strava’s freshness is capped by the athlete’s upload interval, so polling the stored points is enough (S→4)."
+});
+
+window.PARTS.C = {
+  title: "Part C. Routing, coordination and beyond",
+  note: "Goes deeper where the follow-up questions went: placement versus delivery, what the ring and ZooKeeper actually do, co-location, failure handling, and the same ideas in systems outside the eleven. Background reading: [Real-time updates, end to end](https://claude.ai/artifact/N99jHQKT8DMMJsBye1fiWd)."
+};
+window.SECTIONS.push(
+  { id: "c1", part: "C", short: "Placement and delivery", title: "Placement and delivery", note: "Where a socket lands, how an update finds it, and the vocabulary that keeps the two apart." },
+  { id: "c2", part: "C", short: "Coordination and failure", title: "Coordination and failure", note: "What ZooKeeper or etcd do and don’t do, stale views, quorums, registries and reconnect storms." },
+  { id: "c3", part: "C", short: "Co-location", title: "Co-location and hot keys", note: "FB Live’s placement hint taken apart, including the detail the breakdown glosses over." },
+  { id: "c4", part: "C", short: "Beyond the eleven", title: "Beyond the eleven", note: "Design tools, chat extras, games, tickers and push notifications, reasoned with the same two hops." }
+);
+
+/* ---------------- C1: placement and delivery ---------------- */
+Q.push({
+  k: "c1-1", sec: "c1", type: "single", tag: "Consistent hashing",
+  q: "A chat fleet routes 40 million connected users across 120 servers with a consistent hash ring whose membership lives in ZooKeeper. What does the ring actually hold?",
+  o: [
+    "The 120 servers with their virtual nodes and addresses; a user’s owner is computed from its ID each time.",
+    "A mapping from each of the 40 million user IDs to the chat server that user is connected to.",
+    "Each server’s live connection count, so routers can pick the least-loaded owner for every user.",
+    "The open socket handles for every user, so that any server in the fleet can write to them."
+  ],
+  ans: 0,
+  sol: "The ring holds servers (plus virtual nodes) and nothing about users. A user’s position is computed on demand: hash the ID and walk clockwise to the next server. So the owner is a pure function of the key and the current member list, and any component with the same list computes the same answer without a lookup. The only per-user state is the owner’s in-memory map from user to open socket.\n\n(B) describes a registry, a different design with a write on every connect. (C) would make ownership change with load, breaking the determinism that lets everyone agree. (D) is impossible: a socket handle only means something inside the process that owns it."
+});
+Q.push({
+  k: "c1-2", sec: "c1", type: "multi", tag: "Placement and delivery",
+  q: "The figure shows a consistent-hashing chat fleet. Which statements correctly separate placement from delivery?",
+  d: {
+    w: 680, h: 320, seed: 211, alt: "Servers S1 to S3 register in ZooKeeper; the update server watches it, hashes user X and delivers to S2; client X’s socket is placed on S2.",
+    el: [
+      { t: "box", id: "zk", x: 250, y: 8, w: 180, h: 58, label: "ZooKeeper\nmember list", fill: "gray", fs: 16 },
+      { t: "box", id: "us", x: 8, y: 120, w: 140, h: 64, label: "Update\nserver", fill: "orange" },
+      { t: "box", id: "s1", x: 206, y: 120, w: 124, h: 58, label: "Server S1", fill: "purple", fs: 16 },
+      { t: "box", id: "s2", x: 370, y: 120, w: 124, h: 58, label: "Server S2", fill: "purple", fs: 16 },
+      { t: "box", id: "s3", x: 534, y: 120, w: 124, h: 58, label: "Server S3", fill: "purple", fs: 16 },
+      { t: "box", id: "cx", x: 370, y: 254, w: 124, h: 54, label: "Client X", fill: "blue" },
+      { t: "arrow", from: "s1", to: "zk", dash: true },
+      { t: "arrow", from: "s2", to: "zk", dash: true },
+      { t: "arrow", from: "s3", to: "zk", dash: true, label: "register", lo: [24, 6] },
+      { t: "arrow", from: "zk", to: "us", dash: true, label: "watch", lo: [-8, -12] },
+      { t: "line", pts: [[78, 186], [78, 222], [404, 222], [404, 182]], arrow: true, sc: "hred", label: "delivery: hash(X) lands on S2", lp: [236, 222] },
+      { t: "line", pts: [[460, 252], [460, 182]], arrow: true, sc: "hblue", label: "placement", lp: [474, 216], la: "start" }
+    ]
+  },
+  o: [
+    "If clients compute their own owner when connecting, update servers no longer need a copy of the ring.",
+    "Placement decides which server a client’s socket lands on when it connects.",
+    "Delivery decides how an update for user X reaches the server holding X’s socket.",
+    "Placement and delivery must use the same ring, or updates go to servers that don’t hold the socket."
+  ],
+  ans: [1, 2, 3],
+  sol: "(A) Incorrect. Placement and delivery are separate questions, and delivery still needs the ring: the update server must compute X’s owner to send it anything. Client-side computation only changes who does placement.\n\n(B) and (C) Correct. These are the two questions inside the second hop. Placement happens once per connection; delivery happens for every update.\n\n(D) Correct. This is the one hard rule of the consistent-hashing design, and keeping that shared ring consistent is the real job of ZooKeeper or etcd."
+});
+Q.push({
+  k: "c1-3", sec: "c1", type: "single", tag: "Roles",
+  q: "In WhatsApp, user A sends a message over its WebSocket to Chat Server 1, which writes it to the inbox and publishes it toward user C. In the pattern’s terms, what is Chat Server 1 for this message?",
+  o: [
+    "Only an endpoint server, because it is the server holding A’s persistent connection.",
+    "Only an update server, because it is the component that originates the publish.",
+    "Both: the endpoint server for A, and the update server for this particular message.",
+    "Neither: the update server is a dedicated service that clients never connect to."
+  ],
+  ans: 2,
+  sol: "“Update server” names a role, not a kind of machine: whatever has an update and must get it delivered. With WebSockets, a client’s writes arrive at its own endpoint server, which then does the update work, persisting and publishing. So one machine plays both roles for this message.\n\nWith SSE the split is visible instead: clients POST writes to a separate service (FB Live’s Comment Management Service), and that service is the update server."
+});
+Q.push({
+  k: "c1-4", sec: "c1", type: "match", tag: "Placement",
+  q: "Match each way of placing a client’s socket on its owner (List I) with its main cost (List II).",
+  m: {
+    l1: [["P", "The client computes its owner itself"], ["Q", "Connect to any server and get redirected"], ["R", "Ask a lookup service, then connect"], ["S", "A routing proxy doing ring-hash (Envoy, NGINX)"]],
+    l2: [["1", "An extra hop on every message for the connection’s life"], ["2", "Clients learn your topology and need ring updates"], ["3", "One extra round trip at connect time, no new component"], ["4", "An extra round trip, and a hotspot during reconnect storms"]]
+  },
+  o: ["P→3, Q→2, R→4, S→1", "P→2, Q→4, R→3, S→1", "P→1, Q→3, R→4, S→2", "P→2, Q→3, R→4, S→1"],
+  ans: 3,
+  sol: "Client-side computation leaks the server layout and makes clients track ring changes (P→2), which the pattern flags as a problem. A redirect costs one round trip, paid once per long-lived connection, and every server can do it from its cached ring (Q→3). A lookup service also costs a round trip, and since every reconnect hits it, it becomes a hotspot exactly when the fleet is scaling (R→4). A proxy avoids all of that for clients but sits in the path of every message (S→1)."
+});
+Q.push({
+  k: "c1-5", sec: "c1", type: "ar", tag: "Delivery",
+  a: "When an update server hashes user X and calls X’s owner directly, it is acting as a proxy for X’s connection.",
+  r: "That call is server to server and carries one message, not the client’s connection.",
+  ans: 3,
+  sol: "A is false and R is true; R is why A is false. Forwarding a message to the owner is delivery: an internal call per update that happens however X’s socket was placed. Proxying a connection would mean the client’s socket terminates at one server and every frame is relayed to another for the life of the connection, which is the routing-proxy placement option, not delivery."
+});
+Q.push({
+  k: "c1-6", sec: "c1", type: "single", tag: "Services and servers",
+  q: "Chat servers run as a Kubernetes Deployment behind an ordinary ClusterIP Service. An update server hashes user C to “chat server 7” and sends the message to the Service’s address. What happens?",
+  o: [
+    "It reaches chat server 7, because the Service hashes requests the same way the ring does.",
+    "Kubernetes rejects it, because the target pod’s name is missing from the request URL.",
+    "The Service fans it out to every pod, and only the pod holding C’s socket keeps it.",
+    "The Service balances it to some pod, usually one that doesn’t hold C’s socket."
+  ],
+  ans: 3,
+  sol: "A ClusterIP Service is one virtual address over pods it treats as interchangeable, which is right for stateless work and wrong here. Consistent-hash delivery has to address a specific instance: per-pod DNS names from a headless Service over a StatefulSet (`chat-7.chat.ns.svc`), or pod addresses taken straight from the membership the ring is built from. The other way out is not to address instances at all and publish to a topic instead.\n\nThis is the service-versus-server distinction in practice: a stateless service is addressed as a service, a connection holder as a server."
+});
+Q.push({
+  k: "c1-7", sec: "c1", type: "ar", tag: "Consistent hashing",
+  a: "Consistent hashing suits Google Docs better than plain pub/sub does.",
+  r: "Each document carries heavy in-memory state and needs one authority to order concurrent edits.",
+  ans: 0,
+  sol: "Both are true, and R explains A. The deciding factor for consistent hashing is not that connections are persistent (WhatsApp’s are, and it still prefers pub/sub). It is state that must live in exactly one place. Pinning every editor of a document to its owner also means most edits never need a second hop: the owner already holds every collaborator’s socket and broadcasts locally."
+});
+Q.push({
+  k: "c1-8", sec: "c1", type: "num", tag: "Placement",
+  q: "A chat fleet of 20 servers uses connect-anywhere-and-redirect, and ownership is spread evenly. A load balancer sends each new connection to a uniformly random server. 2 million connections are opened per hour. How many redirects per hour does the fleet perform, in thousands?",
+  ans: { v: 1900, tol: 0, unit: "thousand per hour" },
+  sol: "A connection lands on its owner by chance with probability 1/20, so 19/20 of connections are redirected: 2,000,000 × 0.95 = **1,900 thousand** an hour, about 528 a second.\n\nThat sounds like a lot, but each redirect is one extra round trip for a connection that then lives for minutes or hours, which is why redirect is a reasonable default. A placement-aware balancer would remove nearly all of them."
+});
+
+/* ---------------- C2: coordination and failure ---------------- */
+Q.push({
+  k: "c2-1", sec: "c2", type: "single", tag: "ZooKeeper",
+  q: "A chat server crashes without warning. How does the rest of a consistent-hashing fleet learn that it has left the ring?",
+  o: [
+    "Its ephemeral node vanishes when its ZooKeeper session times out, and every watcher is notified.",
+    "The load balancer’s failed health checks trigger it to edit the ring stored in ZooKeeper.",
+    "Update servers keep sending to it until a call fails, then rebuild the ring by polling every server.",
+    "An on-call operator removes it from the ring by hand as part of the incident response."
+  ],
+  ans: 0,
+  sol: "Each server registers as an ephemeral node, which lives only as long as the server’s ZooKeeper session. A crashed server stops heartbeating its session, the session times out, the node disappears, and every component watching the member list gets a notification and recomputes its ring. etcd does the same with leases. No one has to notice the failure by hand or by trial and error.\n\nThe session timeout is the detection delay, so it is a real tuning knob: too short and a GC pause evicts a healthy server, too long and messages head to a dead one."
+});
+Q.push({
+  k: "c2-2", sec: "c2", type: "multi", tag: "ZooKeeper",
+  q: "The 5-node ZooKeeper ensemble behind a consistent-hashing chat fleet loses quorum for 10 minutes. Which statements are correct?",
+  o: [
+    "Messages keep routing, because every component holds a cached copy of the ring.",
+    "Every in-flight message is lost, because ZooKeeper sits on the delivery path.",
+    "A server that crashes during the outage can’t be removed from the ring, so deliveries to its users fail until quorum returns.",
+    "A 5-node ensemble tolerates 2 failed nodes, so losing quorum means at least 3 are down or cut off."
+  ],
+  ans: [0, 2, 3],
+  sol: "(A) Correct. Routing continues on the last-known ring.\n\n(B) Incorrect. ZooKeeper is not on the delivery path; routing uses each component’s local ring.\n\n(C) Correct. What you lose is safe membership change. A dead server stays in everyone’s ring, so deliveries to its users fail; a durable inbox written before delivery is what keeps those messages from being lost.\n\n(D) Correct. A quorum needs a majority, 3 of 5, so the ensemble survives 2 failures."
+});
+Q.push({
+  k: "c2-3", sec: "c2", type: "single", tag: "Stale views",
+  q: "During a scaling event, the update server has already seen the new ring, which moves user Q from S4 to S9. Q’s client is still connected to S4, as in the figure. What does the pattern’s procedure do so Q doesn’t miss messages?",
+  d: {
+    w: 680, h: 262, seed: 221, alt: "The update server, on ring version 2, delivers to S9, the new owner, and also to S4 under the old map. Client Q is still connected to S4 and will reconnect to S9 later.",
+    el: [
+      { t: "box", id: "us", x: 8, y: 96, w: 154, h: 70, label: "Update server\nring v2", fill: "orange", fs: 16 },
+      { t: "box", id: "s4", x: 268, y: 18, w: 160, h: 68, label: "S4, ring v1\nstill holds Q", fill: "purple", fs: 16 },
+      { t: "box", id: "s9", x: 268, y: 176, w: 160, h: 68, label: "S9, ring v2\nnew owner of Q", fill: "purple", fs: 16 },
+      { t: "box", id: "cq", x: 522, y: 18, w: 150, h: 68, label: "Client Q\nnot moved yet", fill: "blue", fs: 16 },
+      { t: "arrow", from: "us", to: "s9", label: "new map", lo: [-14, 12] },
+      { t: "arrow", from: "us", to: "s4", label: "old map too", dash: true, sc: "hred", lo: [-18, -12] },
+      { t: "arrow", from: "cq", to: "s4", label: "socket", sc: "hblue" },
+      { t: "arrow", from: "cq", to: "s9", label: "reconnects later", dash: true, lo: [40, 6] }
+    ]
+  },
+  o: [
+    "Freeze all writes across the fleet until every node confirms it has the new ring.",
+    "Keep both maps during the transition and deliver to both the old and the new owner.",
+    "Disconnect every client at once, so they all reconnect under the new ring together.",
+    "Ask ZooKeeper on every message which server currently owns Q, so nobody uses a stale view."
+  ],
+  ans: 1,
+  sol: "Nodes learn about a membership change at slightly different moments, so for a while “who owns Q” has two answers. The pattern’s procedure accepts that: record the old and new assignments when the event starts, move clients over gradually, deliver to both owners until the move completes, then commit the new map. Whichever server holds Q’s socket at that moment gets the message.\n\n(A) stops the whole system for a routine operation. (C) creates a thundering herd of reconnects. (D) puts the coordination store on every message’s path, which is exactly what the design avoids."
+});
+Q.push({
+  k: "c2-4", sec: "c2", type: "num", tag: "Quorum",
+  q: "How many nodes must a ZooKeeper or etcd cluster have to keep quorum through 3 simultaneous node failures?",
+  ans: { v: 7, tol: 0, unit: "nodes" },
+  sol: "A quorum is a strict majority. To survive f failures, the remaining nodes must still be a majority, which needs 2f + 1 nodes: 2 × 3 + 1 = **7**. With 6 nodes, losing 3 leaves 3 of 6, which is not a majority. That is why ensembles come in odd sizes: a sixth node adds load without adding tolerance."
+});
+Q.push({
+  k: "c2-5", sec: "c2", type: "ar", tag: "Registries",
+  a: "A registry that stores each user’s current server is harder to make highly available than a stateless lookup service that computes owners from a cached ring.",
+  r: "Every connect and disconnect is a write to the registry, and reconnect storms concentrate those writes in time.",
+  ans: 0,
+  sol: "Both are true, and R explains A. A stateless lookup service can be replicated freely behind a load balancer, because each replica computes the same answer from the same ring. A registry is a live, write-heavy data store: it must be sharded and replicated, it must stay accurate as users churn, and a deploy or network blip turns into a burst of writes exactly when it is under most strain. FB Live’s Dispatcher pays this cost in exchange for flexible, load-aware placement."
+});
+Q.push({
+  k: "c2-6", sec: "c2", type: "num", tag: "Deploys",
+  q: "A WebSocket fleet of 50 servers holds 10 million connections, evenly spread. During a deploy, one server is drained at a time, and its clients reconnect with jitter spread evenly over 20 s. What is the reconnect rate during each drain, in connections per second?",
+  ans: { v: 10000, tol: 0, unit: "per second" },
+  sol: "Each server holds 10,000,000 ÷ 50 = 200,000 connections. Spread over 20 s, that is 200,000 ÷ 20 = **10,000** reconnects a second hitting the rest of the fleet, plus a lookup service if you have one.\n\nCompare draining everything at once with no jitter: 10 million reconnects inside a few seconds. Rolling drains and jittered backoff turn a thundering herd into a steady, sizeable load."
+});
+Q.push({
+  k: "c2-7", sec: "c2", type: "single", tag: "Hot keys",
+  q: "Design reasoning beyond the breakdowns: a collaborative editor pins each document to one owner server. A company all-hands document suddenly has 3,000 simultaneous viewers, of whom a handful edit. What is the main risk, and a sound response?",
+  o: [
+    "The ring will keep moving the document between servers as load shifts; pin it manually in ZooKeeper.",
+    "Operational transformation stops being correct above about 1,000 users, so switch this document to CRDTs.",
+    "Every socket and broadcast lands on the owner; keep it ordering edits, and fan out through other servers.",
+    "Split the document across several servers by paragraph, so each server owns and broadcasts part of the text."
+  ],
+  ans: 2,
+  sol: "The single owner is right for ordering edits: that authority is the reason the document is pinned. What doesn’t have to sit on the owner is fan-out. Viewers who only read can connect to other servers that subscribe to the document’s output, so the owner sends each transformed operation once to a few servers rather than to 3,000 sockets. It is the hot-key idea from hierarchical aggregation: keep the authority single, spread the broadcast.\n\n(A) is false: ring ownership doesn’t change with load. (B) is invented. (D) breaks edits that span paragraphs and multiplies the coordination problem."
+});
+
+/* ---------------- C3: co-location and hot keys ---------------- */
+Q.push({
+  k: "c3-1", sec: "c3", type: "single", tag: "FB Live Comments",
+  q: "Why does FB Live’s viewer co-location need a Layer 7 load balancer rather than a Layer 4 one?",
+  o: [
+    "Only Layer 7 balancers can keep a long-lived SSE response open for minutes at a time.",
+    "Layer 4 balancers cannot do consistent hashing on any field of a connection at all.",
+    "Layer 7 balancers spend less CPU per connection than Layer 4 balancers do.",
+    "The video ID is in the request path or headers, which a Layer 4 balancer never sees."
+  ],
+  ans: 3,
+  sol: "Co-location means hashing on the video ID, and the video ID lives in the HTTP request: the URL path or a header. A Layer 4 balancer sees addresses and ports only. It can hash those, which is why (B) is wrong, but the client’s IP says nothing about which video it is watching.\n\n(A) is false: an L4 balancer forwards a long-lived TCP connection happily. (C) is backwards."
+});
+Q.push({
+  k: "c3-2", sec: "c3", type: "single", tag: "FB Live Comments",
+  q: "A variant of FB Live publishes each comment to channel `hash(V) % 1,000`, while its balancer places viewers by a ring over the video ID itself. Each of 100 servers ends up holding viewers of about 10,000 videos. What is wrong?",
+  o: [
+    "Viewers of the same video end up split across many different realtime servers.",
+    "The balancer cannot hash video IDs at all, because they are strings rather than integers.",
+    "Each server’s videos fall into nearly all 1,000 channels, so it subscribes to almost everything.",
+    "Comments within a single video start arriving at its viewers out of order."
+  ],
+  ans: 2,
+  sol: "There are two independent hashes. One decides a video’s server, the other its channel. A server’s 10,000 videos land in channels effectively at random, and the chance that a given channel contains none of them is (1 − 1/1,000)^10,000 ≈ e^−10, about 0.005 %. So the server subscribes to essentially every channel and receives nearly every comment.\n\nThe fix is to put the channel, not the video, on the ring: compute the channel first, then place by channel. Each server then owns whole channels, and every comment it receives belongs to its own viewers.",
+  sd: {
+    w: 680, h: 262, seed: 231, alt: "Left: with the ring over video IDs, server S1 subscribes to nearly all 1,000 channels. Right: with the ring over channels, S1 owns about 10 whole channels.",
+    el: [
+      { t: "frame", x: 8, y: 8, w: 324, h: 244, label: "ring over video ID" },
+      { t: "frame", x: 348, y: 8, w: 324, h: 244, label: "ring over channel" },
+      { t: "box", x: 100, y: 38, w: 140, h: 46, label: "Server S1", fill: "purple", fs: 16 },
+      { t: "box", x: 440, y: 38, w: 140, h: 46, label: "Server S1", fill: "purple", fs: 16 },
+      { t: "text", x: 170, y: 104, s: "subscribes to", fs: 14, c: "muted" },
+      { t: "text", x: 510, y: 104, s: "subscribes to", fs: 14, c: "muted" },
+      { t: "box", x: 24, y: 122, w: 66, h: 32, label: "ch 3", fill: "red", fs: 15 },
+      { t: "box", x: 98, y: 122, w: 66, h: 32, label: "ch 17", fill: "red", fs: 15 },
+      { t: "box", x: 172, y: 122, w: 66, h: 32, label: "ch 42", fill: "red", fs: 15 },
+      { t: "box", x: 246, y: 122, w: 70, h: 32, label: "ch 98", fill: "red", fs: 15 },
+      { t: "box", x: 24, y: 166, w: 66, h: 32, label: "ch 251", fill: "red", fs: 15 },
+      { t: "box", x: 98, y: 166, w: 66, h: 32, label: "ch 640", fill: "red", fs: 15 },
+      { t: "box", x: 172, y: 166, w: 66, h: 32, label: "ch 777", fill: "red", fs: 15 },
+      { t: "box", x: 246, y: 166, w: 70, h: 32, label: "ch 913", fill: "red", fs: 15 },
+      { t: "text", x: 170, y: 226, s: "…nearly all 1,000 channels", fs: 15, c: "hred" },
+      { t: "box", x: 364, y: 122, w: 66, h: 32, label: "ch 3", fill: "green", fs: 15 },
+      { t: "box", x: 438, y: 122, w: 66, h: 32, label: "ch 4", fill: "green", fs: 15 },
+      { t: "box", x: 512, y: 122, w: 66, h: 32, label: "ch 5", fill: "green", fs: 15 },
+      { t: "text", x: 510, y: 226, s: "…about 10 whole channels", fs: 15, c: "hgreen" }
+    ]
+  }
+});
+Q.push({
+  k: "c3-3", sec: "c3", type: "num", tag: "FB Live Comments",
+  q: "With 1,000 channels, a server holds viewers of 2,000 distinct videos whose channels are independent and uniformly random. What percentage of the channels must it subscribe to, to the nearest whole percent?",
+  ans: { v: 86, tol: 1, unit: "%" },
+  sol: "A channel is skipped only if none of the 2,000 videos hashes to it: (1 − 1/1,000)^2,000 ≈ e^−2 ≈ 0.135. So the server subscribes to 1 − 0.135 ≈ **86 %** of the channels.\n\nEven at 2,000 videos, random placement wastes most of the partitioning. With 10,000 videos it is effectively 100 %, which is why the placement hash has to line up with the channel hash."
+});
+Q.push({
+  k: "c3-4", sec: "c3", type: "num", tag: "FB Live Comments",
+  q: "80 realtime servers, 4,000 channels and 2 million comments a second, spread evenly. Placement uses a ring over channels, so each server owns whole channels. How many comments a second, in thousands, does each server receive?",
+  ans: { v: 25, tol: 0, unit: "thousand per second" },
+  sol: "Each server owns 4,000 ÷ 80 = 50 channels, which carry 1/80 of the traffic: 2,000,000 ÷ 80 = **25 thousand** comments a second. The fleet as a whole receives each comment exactly once.\n\nWith random placement every server would receive close to all 2 million a second, 80 times the necessary work."
+});
+Q.push({
+  k: "c3-5", sec: "c3", type: "ar", tag: "FB Live Comments",
+  a: "If FB Live’s balancer hash and the servers’ subscriptions briefly disagree during scaling, some comments are lost.",
+  r: "In FB Live, delivery follows each server’s actual subscriptions, not the balancer’s hash.",
+  ans: 3,
+  sol: "A is false and R is true; R is why A is false. A viewer who lands on an unexpected server makes that server subscribe to one more channel. It is a little wasted work, never a lost comment, because each server subscribes based on the viewers it actually holds. Placement is for efficiency; subscriptions are for correctness. That separation is what lets FB Live use a placement hint without the precise coordination consistent-hash delivery would need."
+});
+Q.push({
+  k: "c3-6", sec: "c3", type: "multi", tag: "FB Live Comments",
+  q: "Why does FB Live keep pub/sub delivery instead of making one server the owner of each live video?",
+  o: [
+    "A popular video can have more viewers than one server can hold, and extra subscribed servers absorb the overflow.",
+    "Each viewer’s state is just which video it is watching, so a single authority buys nothing.",
+    "Pub/sub guarantees exactly-once delivery of every comment to every viewer.",
+    "Viewers hop between videos constantly, which subscriptions absorb and a strict ownership map would fight."
+  ],
+  ans: [0, 1, 3],
+  sol: "(A) Correct, and decisive. Consistent hashing gives each key one owner, so with one-owner delivery, viewers on any overflow server would miss comments. With pub/sub, overflow servers just subscribe.\n\n(B) Correct. The pattern reserves consistent hashing for heavy state that must live in one place, and there is none here.\n\n(C) Incorrect. Redis-style pub/sub is at most once; comments are persisted, and reconnects catch up from a shared cache.\n\n(D) Correct. Churn is cheap with subscriptions (subscribe on the first viewer, unsubscribe on the last) and expensive with an ownership map that must stay accurate."
+});
+
+/* ---------------- C4: beyond the eleven ---------------- */
+Q.push({
+  k: "c4-1", sec: "c4", type: "single", tag: "Design tools",
+  q: "A design tool lets up to 200 people edit one file at once. The server applies each property change and decides the winner when two people change the same property. Which second-hop approach fits?",
+  o: [
+    "Consistent hashing on the file ID, with every editor of a file connected to its owner.",
+    "Plain pub/sub with random placement, letting whichever server receives a change apply it.",
+    "Clients poll the file’s latest state every 5 s and merge any differences locally.",
+    "A full WebRTC mesh among the editors, with no server involved in edits at all."
+  ],
+  ans: 0,
+  sol: "The server decides conflicts, so each file needs one authority holding its live state: the Google Docs shape. Pin the file to an owner and connect all its editors there; most changes are then applied and broadcast inside one process.\n\n(B) splits authority: two servers could accept conflicting changes at once. (C) is too slow for live editing and pushes conflict resolution to clients. (D) has no authority at all, and a 200-way mesh is far beyond what browsers handle well."
+});
+Q.push({
+  k: "c4-2", sec: "c4", type: "single", tag: "Chat extras",
+  q: "A Slack-like app adds typing indicators. Which treatment fits best?",
+  o: [
+    "Persist every typing event alongside the messages, so the history shows who was typing and when.",
+    "Send throttled, ephemeral events over the channel fan-out; clients expire them after a few seconds.",
+    "Route typing events through the same durable inbox as messages, so that none are ever lost.",
+    "Have every client poll the channel once a second for the list of members currently typing."
+  ],
+  ans: 1,
+  sol: "Typing state is worth something only for a few seconds, only the latest value matters, and a lost event is harmless because another follows or the indicator simply times out. So send it best-effort through the same pub/sub fan-out as messages, throttle it (one event every few seconds while typing), and let the client expire it. It is the same reasoning as cursors in Google Docs.\n\nDurability (A, C) multiplies write load for nothing. Polling (D) costs a request per client per second for a cosmetic signal."
+});
+Q.push({
+  k: "c4-3", sec: "c4", type: "multi", tag: "Mobile push",
+  q: "Which statements about mobile push (APNs or FCM) versus an in-app socket are correct?",
+  o: [
+    "OS-level push can reach an app that is backgrounded or suspended.",
+    "OS-level push is a good transport for streaming a driver’s location every few seconds.",
+    "An in-app socket is usually throttled or closed by the OS soon after the app goes to the background.",
+    "Push delivery is guaranteed and ordered, so it can replace the app’s own sync with the server."
+  ],
+  ans: [0, 2],
+  sol: "(A) Correct. That is why Uber sends ride offers through APNs and FCM.\n\n(B) Incorrect. Push is rate-limited and meant for alerts, not streams; use the in-app channel while the app is open.\n\n(C) Correct. Mobile operating systems suspend background apps to save battery, so their sockets can’t be relied on.\n\n(D) Incorrect. Push is best-effort, can be delayed or collapsed, and isn’t ordered. Treat it as a nudge to sync, with the app fetching the real state when it opens."
+});
+Q.push({
+  k: "c4-4", sec: "c4", type: "single", tag: "Games",
+  q: "A live quiz game runs rooms of up to 50 players for about 10 minutes each. The server scores answers and runs each question’s countdown. Which design fits?",
+  o: [
+    "Players connect anywhere; a pub/sub channel per room relays answers, and any server that receives an answer scores it.",
+    "Players poll a scores endpoint every second, and the countdown runs on each player’s device.",
+    "Peer-to-peer connections between players, with the room host’s device doing the scoring.",
+    "Each room gets an owner server when it is created, and all its players connect there over WebSocket."
+  ],
+  ans: 3,
+  sol: "The room has one authoritative state machine: the countdown, which answers arrived in time, and the scores. Like a chess game, it belongs on one owner server, assigned when the room is created (by hashing the room ID, or by a small registry entry that lives as long as the room) with every player connected to it.\n\n(A) lets different servers score answers against different clocks. (B) trusts client clocks for timing, which players can cheat or drift. (C) makes one player’s device the authority, open to cheating and to that player dropping out."
+});
+Q.push({
+  k: "c4-5", sec: "c4", type: "ar", tag: "Live scores",
+  a: "For a sports score page with 10 million fans, pushing every score change over SSE is often unnecessary.",
+  r: "When a few seconds of delay is acceptable, a CDN-cached snapshot polled every few seconds serves millions of identical readers cheaply.",
+  ans: 0,
+  sol: "Both are true, and R explains A. Every fan of a match wants the same bytes, and a few seconds of lag doesn’t hurt, which is exactly what CDNs serve best. This is the same move FB Live makes for mega-streams: once the audience is huge and the content identical, pull-based snapshots beat millions of persistent connections. Push becomes worth it again when per-user content or sub-second latency matters."
+});
+Q.push({
+  k: "c4-6", sec: "c4", type: "num", tag: "Tickers",
+  q: "A trading app’s SSE tier serves 500,000 viewers, each watching 20 symbols. After server-side coalescing, each symbol updates 4 times a second. How many events per second, in millions, leave the SSE tier?",
+  ans: { v: 40, tol: 0, unit: "million per second" },
+  sol: "Each viewer receives 20 × 4 = 80 events a second, and 500,000 × 80 = **40 million** events a second. Inbound to the tier is tiny by comparison (thousands of symbols × 4 a second), so the cost is entirely in fan-out. That is why coalescing, and cutting update rates for symbols that are off screen, are the levers that matter."
+});
+Q.push({
+  k: "c4-7", sec: "c4", type: "multi", tag: "Whiteboards",
+  q: "A whiteboard app shows every user’s cursor to everyone else on the same board, sampled 20 times a second. Which choices are reasonable?",
+  o: [
+    "Send cursor positions over the existing socket and never persist them.",
+    "Write each cursor position to the database so late joiners can replay cursor history.",
+    "Throttle or coalesce cursor updates on the server, and interpolate movement on the client.",
+    "Consider peer-to-peer data channels to keep this traffic off servers, as Canva did for pointers."
+  ],
+  ans: [0, 2, 3],
+  sol: "(A) Correct. Cursors are ephemeral: latest value only, worthless after the user leaves.\n\n(B) Incorrect. Persisting 20 updates a second per user buys a history nobody reads.\n\n(C) Correct. Fewer updates with smooth client-side interpolation look the same to people and cost a fraction of the bandwidth.\n\n(D) Correct. This is the pattern’s example of WebRTC reducing server load: high-frequency, low-value traffic between peers."
+});
+Q.push({
+  k: "c4-8", sec: "c4", type: "single", tag: "Countdowns",
+  q: "An auction page shows a countdown to closing time, and clients’ clocks can be off by several seconds. What should the server send so every viewer sees the same countdown?",
+  o: [
+    "The remaining seconds, pushed once every second to every viewer of the auction page.",
+    "Nothing at all; each client starts its countdown from its own clock when the page loads.",
+    "The remaining milliseconds, on a long poll that the server answers every 100 ms.",
+    "The absolute closing time and the server’s current time, so each client corrects its offset."
+  ],
+  ans: 3,
+  sol: "Send facts that don’t go stale: the closing time, and the server’s time when the message was sent. The client computes its offset from its own clock (adjusting for half the round trip if it wants precision) and renders the countdown locally, with no further traffic. Re-sync occasionally, and whenever the closing time changes, for example on an anti-sniping extension.\n\nPushing every second (A) costs a message per viewer per second, and every network delay shows as a jumpy timer. Trusting client clocks (B) shows different viewers different deadlines. Polling every 100 ms (C) is pure overhead."
+});
+
+</script>
+<script>
+(function () {
+  "use strict";
+  var SECTIONS = window.SECTIONS || [], QUESTIONS = window.QUESTIONS || [], PASSAGES = window.PASSAGES || {};
+  var AR_OPTS = [
+    "Both A and R are true, and R is the correct explanation of A.",
+    "Both A and R are true, but R is not the correct explanation of A.",
+    "A is true, but R is false.",
+    "A is false, but R is true."
+  ];
+  var TYPE_LABEL = { single: "Single correct", multi: "One or more correct", ar: "Assertion and reason", match: "Match the columns", num: "Numerical answer" };
+  var MARKS = { single: "+4 / −1", multi: "+4 / +1 each / −2", ar: "+4 / −1", match: "+4 / −1", num: "+4 / 0" };
+  var LET = ["A", "B", "C", "D", "E", "F"];
+  var KEY = "rtu-jee-paper-v1";
+  var secById = {};
+  SECTIONS.forEach(function (s, i) { s.i = i; secById[s.id] = s; });
+  var byK = {};
+  QUESTIONS.forEach(function (q, i) { q.n = i + 1; byK[q.k] = q; });
+  var state = load();
+  var filter = "all";
+  var DGS = {};
+
+  function load() { try { var s = localStorage.getItem(KEY); return s ? JSON.parse(s) || {} : {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { } }
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+  /* ---------- tiny markup ---------- */
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function inl(s) {
+    return String(s).split(/(`[^`]*`)/g).map(function (p, i) {
+      if (i % 2 === 1) return "<code>" + esc(p.slice(1, -1)) + "</code>";
+      return esc(p).replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>').replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*\s][^*]*)\*/g, "<em>$1</em>").replace(/\n/g, "<br>");
+    }).join("");
+  }
+  function md(s) { return String(s).split(/\n\n/).map(function (p) { return "<p>" + inl(p) + "</p>"; }).join(""); }
+
+  /* ---------- diagram engine (rough.js, Excalidraw look) ---------- */
+  var DG = (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    var FONT = "'Patrick Hand', 'Comic Sans MS', 'Chalkboard SE', cursive";
+    function cv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    function palette() {
+      var p = {};
+      ["stroke", "text", "muted", "blue", "green", "yellow", "red", "purple", "orange", "gray", "hred", "hblue", "hgreen", "hpurple"].forEach(function (k) { p[k] = cv("--d-" + k) || "#888"; });
+      p.paper = cv("--paper") || "#fff";
+      return p;
+    }
+    function mk(tag, attrs) {
+      var e = document.createElementNS(NS, tag);
+      for (var k in attrs) { if (attrs[k] !== undefined && attrs[k] !== null) e.setAttribute(k, attrs[k]); }
+      return e;
+    }
+    function plainGen() {
+      function sty(e, o) {
+        e.setAttribute("stroke", o.stroke || "none"); e.setAttribute("stroke-width", o.strokeWidth || 1);
+        e.setAttribute("fill", o.fill || "none"); e.setAttribute("stroke-linecap", "round"); e.setAttribute("stroke-linejoin", "round");
+        if (o.strokeLineDash) e.setAttribute("stroke-dasharray", o.strokeLineDash.join(" "));
+        return e;
+      }
+      return {
+        path: function (d, o) { return sty(mk("path", { d: d }), o); },
+        ellipse: function (cx, cy, w, h, o) { return sty(mk("ellipse", { cx: cx, cy: cy, rx: w / 2, ry: h / 2 }), o); },
+        circle: function (cx, cy, d, o) { return sty(mk("circle", { cx: cx, cy: cy, r: d / 2 }), o); },
+        line: function (x1, y1, x2, y2, o) { return sty(mk("line", { x1: x1, y1: y1, x2: x2, y2: y2 }), o); },
+        linearPath: function (pts, o) { return sty(mk("polyline", { points: pts.map(function (p) { return p[0] + "," + p[1]; }).join(" ") }), o); },
+        curve: function (pts, o) {
+          var a = pts[0], m = pts[1], b = pts[2], c = [2 * m[0] - (a[0] + b[0]) / 2, 2 * m[1] - (a[1] + b[1]) / 2];
+          return sty(mk("path", { d: "M" + a[0] + " " + a[1] + " Q" + c[0] + " " + c[1] + " " + b[0] + " " + b[1] }), o);
+        }
+      };
+    }
+    function gen(svg) {
+      if (window.rough && typeof window.rough.svg === "function") { try { return window.rough.svg(svg); } catch (e) { } }
+      return plainGen();
+    }
+    function rr(x, y, w, h, r) {
+      r = Math.min(r, w / 2, h / 2);
+      return "M" + (x + r) + " " + y + " L" + (x + w - r) + " " + y + " Q" + (x + w) + " " + y + " " + (x + w) + " " + (y + r) +
+        " L" + (x + w) + " " + (y + h - r) + " Q" + (x + w) + " " + (y + h) + " " + (x + w - r) + " " + (y + h) +
+        " L" + (x + r) + " " + (y + h) + " Q" + x + " " + (y + h) + " " + x + " " + (y + h - r) +
+        " L" + x + " " + (y + r) + " Q" + x + " " + y + " " + (x + r) + " " + y + " Z";
+    }
+    function center(n) { return [n.x + n.w / 2, n.y + n.h / 2]; }
+    function sideP(n, s, sh) {
+      sh = sh || 0; var c = center(n);
+      if (s === "t") return [c[0] + sh, n.y];
+      if (s === "b") return [c[0] + sh, n.y + n.h];
+      if (s === "l") return [n.x, c[1] + sh];
+      return [n.x + n.w, c[1] + sh];
+    }
+    function edgeP(n, tx, ty) {
+      var c = center(n), dx = tx - c[0], dy = ty - c[1], t;
+      if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) return c;
+      if (n.t === "ell") { var a = n.w / 2, b = n.h / 2; t = 1 / Math.sqrt(dx * dx / (a * a) + dy * dy / (b * b)); }
+      else { t = Math.min(Math.abs(dx) > 1e-6 ? (n.w / 2) / Math.abs(dx) : Infinity, Math.abs(dy) > 1e-6 ? (n.h / 2) / Math.abs(dy) : Infinity); }
+      return [c[0] + dx * t, c[1] + dy * t];
+    }
+    function pull(a, b, d) { var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [a[0] + dx / L * d, a[1] + dy / L * d]; }
+    function head(from, tip, size) {
+      var ang = Math.atan2(tip[1] - from[1], tip[0] - from[0]), s = size || 11, sp = 0.45;
+      return [[tip[0] - s * Math.cos(ang - sp), tip[1] - s * Math.sin(ang - sp)], tip, [tip[0] - s * Math.cos(ang + sp), tip[1] - s * Math.sin(ang + sp)]];
+    }
+    function text(layer, x, y, s, o) {
+      o = o || {};
+      var lines = String(s).split("\n"), fs = o.fs || 16, lh = fs * 1.15;
+      var t = mk("text", { x: x, y: y - (lines.length - 1) * lh / 2, "text-anchor": o.a || "middle", "dominant-baseline": "central", "font-size": fs, fill: o.fill, "font-family": FONT });
+      if (o.bold) t.setAttribute("font-weight", "700");
+      if (o.rot) t.setAttribute("transform", "rotate(" + o.rot + " " + x + " " + y + ")");
+      lines.forEach(function (ln, i) { var sp = mk("tspan", { x: x, dy: i ? lh : 0 }); sp.textContent = ln; t.appendChild(sp); });
+      layer.appendChild(t);
+      return t;
+    }
+    function tag(layer, x, y, s, o, P) {
+      var lines = String(s).split("\n"), fs = o.fs || 15, lh = fs * 1.15;
+      var w = Math.max.apply(null, lines.map(function (l) { return l.length; })) * fs * 0.43 + 10, h = lines.length * lh + 4;
+      var ax = o.a === "start" ? x - 5 : o.a === "end" ? x - w + 5 : x - w / 2;
+      layer.appendChild(mk("rect", { x: ax, y: y - h / 2, width: w, height: h, rx: 4, fill: P.paper, opacity: 0.9 }));
+      text(layer, x, y, s, { fs: fs, fill: o.fill || P.text, a: o.a });
+    }
+
+    function bgOf(el) {
+      while (el && el.nodeType === 1) {
+        var c = getComputedStyle(el).backgroundColor;
+        if (c && c !== "transparent" && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(c)) return c;
+        el = el.parentElement;
+      }
+      return null;
+    }
+    function draw(host, spec) {
+      if (!host || !spec) return;
+      var P = palette();
+      var surf = bgOf(host); if (surf) P.paper = surf;
+      while (host.firstChild) host.removeChild(host.firstChild);
+      var svg = mk("svg", { viewBox: "0 0 " + spec.w + " " + spec.h, role: "img", "aria-label": spec.alt || "Diagram", preserveAspectRatio: "xMidYMid meet" });
+      svg.style.width = "100%"; svg.style.maxWidth = spec.w + "px"; svg.style.minWidth = Math.min(spec.w, spec.minw != null ? spec.minw : 540) + "px"; svg.style.height = "auto"; svg.style.display = "block";
+      var rc = gen(svg), seed = spec.seed || 11;
+      var L = { frame: mk("g", {}), shape: mk("g", {}), arrow: mk("g", {}), text: mk("g", {}) };
+      svg.appendChild(L.frame); svg.appendChild(L.shape); svg.appendChild(L.arrow); svg.appendChild(L.text);
+      var nodes = {};
+      spec.el.forEach(function (it) { if (it.id) nodes[it.id] = it; });
+      function col(name, dflt) { return name ? (P[name] || name) : dflt; }
+      function opt(it, extra) {
+        var o = { roughness: it.rough != null ? it.rough : 1.05, bowing: 1, stroke: col(it.sc, P.stroke), strokeWidth: it.sw || 1.6, seed: seed++ };
+        if (it.dash) o.strokeLineDash = [7, 6];
+        if (extra) for (var k in extra) o[k] = extra[k];
+        return o;
+      }
+      function headOpt(it) { return opt({ sc: it.sc, sw: it.sw }); }
+      function fillOpt(it) {
+        if (!it.fill) return {};
+        return it.hs ? { fill: col(it.fill), fillStyle: "hachure", hachureGap: 6, fillWeight: 1.3, hachureAngle: -41 } : { fill: col(it.fill), fillStyle: "solid" };
+      }
+      function nodeText(it, cx, cy) { if (it.label) text(L.text, cx, cy, it.label, { fs: it.fs || 17, fill: col(it.tc, P.text) }); }
+
+      spec.el.forEach(function (it) {
+        var o, pa, pb, mid;
+        switch (it.t) {
+          case "frame":
+            L.frame.appendChild(rc.path(rr(it.x, it.y, it.w, it.h, 12), opt(it, { strokeLineDash: [6, 6], stroke: col(it.sc, P.muted), strokeWidth: 1.2 })));
+            if (it.label) text(L.text, it.x + 12, it.y + 14, it.label, { fs: it.fs || 14, fill: P.muted, a: "start" });
+            break;
+          case "box":
+            L.shape.appendChild(rc.path(rr(it.x, it.y, it.w, it.h, it.r != null ? it.r : 10), opt(it, fillOpt(it))));
+            nodeText(it, it.x + it.w / 2, it.y + it.h / 2);
+            break;
+          case "ell":
+            L.shape.appendChild(rc.ellipse(it.x + it.w / 2, it.y + it.h / 2, it.w, it.h, opt(it, fillOpt(it))));
+            nodeText(it, it.x + it.w / 2, it.y + it.h / 2);
+            break;
+          case "db": {
+            var ry = Math.min(12, it.h * 0.16), rx = it.w / 2, x = it.x, y = it.y, w = it.w, h = it.h;
+            if (it.fill) L.shape.appendChild(rc.path("M" + x + " " + (y + ry) + " L" + x + " " + (y + h - ry) + " A" + rx + " " + ry + " 0 0 0 " + (x + w) + " " + (y + h - ry) + " L" + (x + w) + " " + (y + ry) + " Z", opt(it, { stroke: "none", fill: col(it.fill), fillStyle: "solid" })));
+            L.shape.appendChild(rc.path("M" + x + " " + (y + ry) + " L" + x + " " + (y + h - ry) + " A" + rx + " " + ry + " 0 0 0 " + (x + w) + " " + (y + h - ry) + " L" + (x + w) + " " + (y + ry), opt(it, {})));
+            L.shape.appendChild(rc.ellipse(x + rx, y + ry, w, 2 * ry, opt(it, fillOpt(it))));
+            nodeText(it, x + rx, y + ry + (h - ry) / 2);
+            break;
+          }
+          case "circle":
+            L.shape.appendChild(rc.circle(it.cx, it.cy, it.r * 2, opt(it, fillOpt(it))));
+            if (it.label) text(L.text, it.cx, it.cy, it.label, { fs: it.fs || 15, fill: P.text });
+            break;
+          case "dot":
+            L.shape.appendChild(rc.circle(it.x, it.y, (it.r || 6) * 2, opt(it, { fill: col(it.fill || "hred"), fillStyle: "solid" })));
+            if (it.label) { var dl = it.lo || [0, -16]; text(L.text, it.x + dl[0], it.y + dl[1], it.label, { fs: it.fs || 14, fill: col(it.c, P.text), a: it.la }); }
+            break;
+          case "text":
+            text(L.text, it.x, it.y, it.s, { fs: it.fs || 15, fill: col(it.c, P.text), a: it.a, bold: it.bold, rot: it.rot });
+            break;
+          case "line": {
+            var pts = it.pts;
+            L.arrow.appendChild(rc.linearPath(pts, opt(it, {})));
+            if (it.arrow) L.arrow.appendChild(rc.linearPath(head(pts[pts.length - 2], pts[pts.length - 1]), headOpt(it)));
+            if (it.two) L.arrow.appendChild(rc.linearPath(head(pts[1], pts[0]), headOpt(it)));
+            if (it.label) {
+              var lp = it.lp || [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
+              tag(L.text, lp[0], lp[1], it.label, { fs: it.lfs || 14, fill: it.sc ? col(it.sc) : P.text, a: it.la }, P);
+            }
+            break;
+          }
+          case "arrow": {
+            var A = typeof it.from === "string" ? nodes[it.from] : null, B = typeof it.to === "string" ? nodes[it.to] : null;
+            var ca = A ? center(A) : it.from, cb = B ? center(B) : it.to;
+            pa = A ? (it.fside ? sideP(A, it.fside, it.fsh) : edgeP(A, cb[0], cb[1])) : it.from.slice();
+            pb = B ? (it.tside ? sideP(B, it.tside, it.tsh) : edgeP(B, ca[0], ca[1])) : it.to.slice();
+            if (A && it.fside && B && !it.tside) pb = edgeP(B, pa[0], pa[1]);
+            if (B && it.tside && A && !it.fside) pa = edgeP(A, pb[0], pb[1]);
+            var g = it.gap != null ? it.gap : 5;
+            if (A) pa = pull(pa, pb, g);
+            if (B) pb = pull(pb, pa, g);
+            if (it.off) {
+              var ddx = pb[0] - pa[0], ddy = pb[1] - pa[1], Ln = Math.hypot(ddx, ddy) || 1, nx = -ddy / Ln * it.off, ny = ddx / Ln * it.off;
+              pa = [pa[0] + nx, pa[1] + ny]; pb = [pb[0] + nx, pb[1] + ny];
+            }
+            o = opt(it, {});
+            if (it.curve) {
+              var cdx = pb[0] - pa[0], cdy = pb[1] - pa[1], CL = Math.hypot(cdx, cdy) || 1;
+              mid = [(pa[0] + pb[0]) / 2 - cdy / CL * it.curve, (pa[1] + pb[1]) / 2 + cdx / CL * it.curve];
+              L.arrow.appendChild(rc.curve([pa, mid, pb], o));
+              if (!it.nohead) L.arrow.appendChild(rc.linearPath(head(mid, pb), headOpt(it)));
+              if (it.two) L.arrow.appendChild(rc.linearPath(head(mid, pa), headOpt(it)));
+            } else {
+              mid = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2];
+              L.arrow.appendChild(rc.line(pa[0], pa[1], pb[0], pb[1], o));
+              if (!it.nohead) L.arrow.appendChild(rc.linearPath(head(pa, pb), headOpt(it)));
+              if (it.two) L.arrow.appendChild(rc.linearPath(head(pb, pa), headOpt(it)));
+            }
+            if (it.label) {
+              var lo = it.lo || [0, 0];
+              tag(L.text, mid[0] + lo[0], mid[1] + lo[1], it.label, { fs: it.lfs || 14, fill: it.sc ? col(it.sc) : P.text, a: it.la }, P);
+            }
+            break;
+          }
+          case "ring": {
+            var mx = it.max || 100;
+            L.shape.appendChild(rc.circle(it.cx, it.cy, it.r * 2, opt(it, {})));
+            var pos = function (p, rad) { var a = (p / mx * 360 - 90) * Math.PI / 180; return [it.cx + rad * Math.cos(a), it.cy + rad * Math.sin(a)]; };
+            var t0a = pos(0, it.r - 7), t0b = pos(0, it.r + 7), t0l = pos(0, it.r + 22);
+            L.shape.appendChild(rc.line(t0a[0], t0a[1], t0b[0], t0b[1], opt({ sw: 2 })));
+            text(L.text, t0l[0], t0l[1], "0 / " + mx, { fs: 14, fill: P.muted });
+            it.nodes.forEach(function (nd) {
+              var big = nd.kind === "server", c = pos(nd.p, it.r);
+              L.shape.appendChild(rc.circle(c[0], c[1], big ? 22 : 13, opt({}, { fill: big ? P.blue : P.yellow, fillStyle: "solid" })));
+              if (nd.dead) {
+                L.arrow.appendChild(rc.line(c[0] - 13, c[1] - 13, c[0] + 13, c[1] + 13, opt({ sc: "hred", sw: 2.6 })));
+                L.arrow.appendChild(rc.line(c[0] - 13, c[1] + 13, c[0] + 13, c[1] - 13, opt({ sc: "hred", sw: 2.6 })));
+              }
+              var lp2 = pos(nd.p, big ? it.r + 36 : it.r - 46);
+              text(L.text, lp2[0], lp2[1], nd.label + " (" + nd.p + ")", { fs: big ? 16 : 15, fill: nd.dead ? P.hred : P.text, bold: big });
+            });
+            if (it.cw) {
+              var r2 = 44, arc = [-50, 0, 50].map(function (deg) { var a = (deg - 90) * Math.PI / 180; return [it.cx + r2 * Math.cos(a), it.cy + r2 * Math.sin(a)]; });
+              L.arrow.appendChild(rc.curve(arc, opt({ sc: "muted", sw: 1.4 })));
+              L.arrow.appendChild(rc.linearPath(head(arc[1], arc[2], 9), opt({ sc: "muted", sw: 1.4 })));
+              text(L.text, it.cx, it.cy + 6, "clockwise", { fs: 15, fill: P.muted });
+            }
+            break;
+          }
+        }
+      });
+      host.appendChild(svg);
+    }
+    return { draw: draw };
+  })();
+
+  function fig(key, spec) {
+    DGS[key] = spec;
+    return '<figure class="dg"><div class="dg-c" data-dg="' + key + '"></div>' + (spec.cap ? "<figcaption>" + inl(spec.cap) + "</figcaption>" : "") + "</figure>";
+  }
+  function drawAll() { $$("[data-dg]").forEach(function (c) { DG.draw(c, DGS[c.getAttribute("data-dg")]); }); }
+
+  /* ---------- rendering ---------- */
+  function matchTables(m) {
+    function tbl(title, rows) {
+      return '<table class="mt"><thead><tr><th colspan="2">' + title + "</th></tr></thead><tbody>" +
+        rows.map(function (r) { return '<tr><th scope="row">' + esc(r[0]) + "</th><td>" + inl(r[1]) + "</td></tr>"; }).join("") + "</tbody></table>";
+    }
+    return '<div class="match">' + tbl("List I", m.l1) + tbl("List II", m.l2) + "</div>";
+  }
+  function answerArea(q) {
+    if (q.type === "num") {
+      return '<div class="num"><label><span class="num-l">Your answer</span><input class="js-num" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Numerical answer for question ' + q.n + '"></label>' +
+        (q.ans.unit ? '<span class="unit">' + esc(q.ans.unit) + "</span>" : "") + "</div>";
+    }
+    var opts = q.type === "ar" ? AR_OPTS : q.o, role = q.type === "multi" ? "checkbox" : "radio";
+    var h = '<div class="opts" role="' + (role === "radio" ? "radiogroup" : "group") + '" aria-label="Options for question ' + q.n + '">';
+    opts.forEach(function (o, i) {
+      h += '<button type="button" class="opt" role="' + role + '" aria-checked="false" data-i="' + i + '"><span class="bub" aria-hidden="true">' + LET[i] +
+        '</span><span class="ot"><span class="sr">Option ' + LET[i] + ": </span>" + inl(o) + "</span></button>";
+    });
+    return h + "</div>";
+  }
+  function card(q) {
+    var h = '<article class="q" id="q' + q.n + '" data-sec="' + q.sec + '" data-k="' + q.k + '">';
+    h += '<header class="q-head"><span class="q-no">Q' + q.n + '</span><span class="q-type">' + TYPE_LABEL[q.type] + "</span>" +
+      (q.tag ? '<span class="q-tag">' + esc(q.tag) + "</span>" : "") + '<span class="q-marks">' + MARKS[q.type] + "</span></header>";
+    if (q.type === "ar" && !q.q) h += '<div class="q-stem"><p>Read the assertion and the reason, then choose the correct option.</p></div>';
+    if (q.q) h += '<div class="q-stem">' + md(q.q) + "</div>";
+    if (q.type === "ar") h += '<dl class="ar"><dt>Assertion (A)</dt><dd>' + inl(q.a) + "</dd><dt>Reason (R)</dt><dd>" + inl(q.r) + "</dd></dl>";
+    if (q.type === "match") h += matchTables(q.m);
+    if (q.d) h += fig(q.k + "-d", q.d);
+    if (q.type === "multi") h += '<p class="hint">Select every option that is correct.</p>';
+    h += answerArea(q);
+    h += '<div class="q-actions"><button class="btn primary js-check" type="button" disabled>Check answer</button><button class="btn js-reveal" type="button">Show solution</button><span class="verdict" aria-live="polite"></span></div>';
+    h += '<section class="sol" hidden><h4>Solution</h4><p class="sol-key"></p>' + md(q.sol) + (q.sd ? fig(q.k + "-sd", q.sd) : "") + "</section>";
+    return h + "</article>";
+  }
+  function psgBlock(id, first, last, sec) {
+    var p = PASSAGES[id];
+    return '<aside class="psg" data-sec="' + sec + '"><h3>Paragraph for questions ' + first + " to " + last + "</h3>" + md(p.text) + (p.d ? fig("psg-" + id, p.d) : "") + "</aside>";
+  }
+  function render() {
+    var out = [], lastSec = null, lastPsg = null, lastPart = null;
+    QUESTIONS.forEach(function (q) {
+      var s = secById[q.sec];
+      if (s.part !== lastPart) {
+        var P = window.PARTS[s.part];
+        out.push('<div class="part-h" data-part="' + s.part + '"><h2>' + esc(P.title) + "</h2><p>" + inl(P.note) + "</p></div>");
+        lastPart = s.part;
+      }
+      if (q.sec !== lastSec) {
+        out.push('<header class="sec-h" data-sec="' + s.id + '"><h3>' + esc(s.title) + "</h3>" + (s.note ? "<p>" + inl(s.note) + "</p>" : "") + "</header>");
+        lastSec = q.sec; lastPsg = null;
+      }
+      if (q.psg && q.psg !== lastPsg) {
+        var grp = QUESTIONS.filter(function (x) { return x.psg === q.psg; });
+        out.push(psgBlock(q.psg, grp[0].n, grp[grp.length - 1].n, q.sec));
+      }
+      lastPsg = q.psg || null;
+      out.push(card(q));
+    });
+    $("#paper").innerHTML = out.join("");
+    $$(".q").forEach(view);
+  }
+
+  /* ---------- state + scoring ---------- */
+  var V = { correct: ["Correct", "ok"], partial: ["Partly correct", "part"], wrong: ["Incorrect", "bad"], revealed: ["Solution shown", "rev"] };
+  function sgn(m) { return m > 0 ? "+" + m : m < 0 ? "−" + Math.abs(m) : "0"; }
+  function fmt(v) { return (Math.round(v * 100) / 100).toLocaleString("en-US"); }
+  function isKey(q, i) { return q.type === "multi" ? q.ans.indexOf(i) >= 0 : q.ans === i; }
+  function hasAnswer(q, st) { return q.type === "num" ? !!(st.val && String(st.val).trim()) : !!(st.sel && st.sel.length); }
+  function keyText(q) {
+    if (q.type === "num") {
+      var a = q.ans, s = "Answer: " + fmt(a.v) + (a.unit ? " " + a.unit : "");
+      if (a.tol > 0) s += " (accepted from " + fmt(a.v - a.tol) + " to " + fmt(a.v + a.tol) + ")";
+      return s;
+    }
+    if (q.type === "multi") return "Answer: " + q.ans.map(function (i) { return "(" + LET[i] + ")"; }).join(", ");
+    return "Answer: (" + LET[q.ans] + ")";
+  }
+  function score(q, st) {
+    if (q.type === "num") {
+      var v = parseFloat(String(st.val).replace(/[,\s]/g, "").replace(/[−–]/g, "-"));
+      if (isNaN(v)) return null;
+      var ok = Math.abs(v - q.ans.v) <= q.ans.tol + 1e-9;
+      return { marks: ok ? 4 : 0, res: ok ? "correct" : "wrong" };
+    }
+    var sel = st.sel || [];
+    if (q.type === "multi") {
+      if (sel.some(function (i) { return q.ans.indexOf(i) < 0; })) return { marks: -2, res: "wrong" };
+      if (sel.length === q.ans.length) return { marks: 4, res: "correct" };
+      return { marks: sel.length, res: "partial" };
+    }
+    var good = sel[0] === q.ans;
+    return { marks: good ? 4 : -1, res: good ? "correct" : "wrong" };
+  }
+  function view(art) {
+    var q = byK[art.getAttribute("data-k")], st = state[q.k] || {}, done = !!st.done, sel = st.sel || [];
+    art.classList.remove("is-correct", "is-partial", "is-wrong", "is-revealed");
+    if (done) art.classList.add("is-" + st.done);
+    $$(".opt", art).forEach(function (b) {
+      var i = +b.getAttribute("data-i"), on = sel.indexOf(i) >= 0;
+      b.setAttribute("aria-checked", on ? "true" : "false");
+      b.classList.remove("is-key", "is-wrong");
+      b.disabled = done;
+      if (done) { if (isKey(q, i)) b.classList.add("is-key"); if (on && !isKey(q, i)) b.classList.add("is-wrong"); }
+    });
+    var inp = $(".js-num", art);
+    if (inp) {
+      if (document.activeElement !== inp) inp.value = st.val || "";
+      inp.disabled = done;
+      inp.classList.toggle("is-ok", done && st.done === "correct");
+      inp.classList.toggle("is-bad", done && st.done === "wrong");
+    }
+    $(".js-check", art).disabled = done || !hasAnswer(q, st);
+    var rev = $(".js-reveal", art), sol = $(".sol", art);
+    if (done) { rev.textContent = st.hide ? "Show solution" : "Hide solution"; sol.hidden = !!st.hide; }
+    else { rev.textContent = "Show solution"; sol.hidden = true; }
+    $(".sol-key", art).textContent = keyText(q);
+    var vd = $(".verdict", art);
+    if (done) {
+      var m = st.marks || 0;
+      vd.textContent = V[st.done][0] + ". " + sgn(m) + (Math.abs(m) === 1 ? " mark" : " marks");
+      vd.className = "verdict v-" + V[st.done][1];
+    } else if (!vd.classList.contains("v-warn")) { vd.textContent = ""; vd.className = "verdict"; }
+  }
+  function totals() {
+    var m = 0, att = 0, rev = 0, max = QUESTIONS.length * 4;
+    QUESTIONS.forEach(function (q) { var st = state[q.k]; if (st && st.done) { m += st.marks || 0; if (st.done === "revealed") rev++; else att++; } });
+    $("#t-marks").textContent = sgn(m).replace("+", "");
+    $("#t-max").textContent = max;
+    $("#t-att").textContent = att;
+    $("#t-rev").textContent = rev;
+  }
+
+  /* ---------- palette ---------- */
+  function buildPal() {
+    var h = ['<div class="pal-head"><h2>Question palette</h2><button type="button" class="btn sm only-m js-palclose">Close</button></div>'], last = null;
+    QUESTIONS.forEach(function (q) {
+      if (q.sec !== last) {
+        if (last) h.push("</div></div>");
+        var s = secById[q.sec];
+        h.push('<div class="pal-g" data-sec="' + s.id + '"><div class="pal-l">' + esc(s.short) + '</div><div class="pal-grid">');
+        last = q.sec;
+      }
+      h.push('<button type="button" class="pb" data-k="' + q.k + '" aria-label="Go to question ' + q.n + '">' + q.n + "</button>");
+    });
+    h.push("</div></div>");
+    h.push('<ul class="legend"><li><span class="pb s-correct"></span>Correct</li><li><span class="pb s-partial"></span>Partly correct</li><li><span class="pb s-wrong"></span>Incorrect</li><li><span class="pb s-revealed"></span>Solution shown</li><li><span class="pb s-touched"></span>Answered, not checked</li></ul>');
+    $("#pal").innerHTML = h.join("");
+    QUESTIONS.forEach(updPal);
+  }
+  function updPal(q) {
+    var b = $('.pb[data-k="' + q.k + '"]', $("#pal"));
+    if (!b) return;
+    var st = state[q.k] || {};
+    b.className = "pb" + (st.done ? " s-" + st.done : hasAnswer(q, st) ? " s-touched" : "");
+  }
+
+  /* ---------- filters ---------- */
+  function buildFilters() {
+    var h = ['<button type="button" class="chip" data-f="all" aria-pressed="true">All <span class="cn">' + QUESTIONS.length + "</span></button>"], lastPart = null;
+    SECTIONS.forEach(function (s) {
+      if (s.part !== lastPart) { h.push('<span class="chip-sep">Part ' + s.part + "</span>"); lastPart = s.part; }
+      var n = QUESTIONS.filter(function (q) { return q.sec === s.id; }).length;
+      h.push('<button type="button" class="chip" data-f="' + s.id + '" aria-pressed="false">' + esc(s.short) + ' <span class="cn">' + n + "</span></button>");
+    });
+    $("#filters").innerHTML = h.join("");
+  }
+  function applyFilter() {
+    $$("#paper [data-sec], #pal .pal-g").forEach(function (el) { el.hidden = filter !== "all" && el.getAttribute("data-sec") !== filter; });
+    var part = filter === "all" ? null : secById[filter].part;
+    $$("#paper .part-h").forEach(function (el) { el.hidden = part !== null && el.getAttribute("data-part") !== part; });
+    $$("#filters .chip").forEach(function (c) { c.setAttribute("aria-pressed", c.getAttribute("data-f") === filter ? "true" : "false"); });
+  }
+
+  /* ---------- events ---------- */
+  function bind() {
+    var paper = $("#paper");
+    paper.addEventListener("click", function (e) {
+      var art = e.target.closest(".q");
+      if (!art) return;
+      var q = byK[art.getAttribute("data-k")], st = state[q.k] || (state[q.k] = {});
+      var opt = e.target.closest(".opt");
+      if (opt) {
+        if (st.done) return;
+        var i = +opt.getAttribute("data-i");
+        st.sel = st.sel || [];
+        if (q.type === "multi") {
+          var at = st.sel.indexOf(i);
+          if (at >= 0) st.sel.splice(at, 1); else st.sel.push(i);
+          st.sel.sort(function (a, b) { return a - b; });
+        } else st.sel = [i];
+        save(); view(art); updPal(q);
+        return;
+      }
+      if (e.target.closest(".js-check")) {
+        if (st.done || !hasAnswer(q, st)) return;
+        var r = score(q, st), vd = $(".verdict", art);
+        if (!r) { vd.textContent = "Enter a number, for example 12.5."; vd.className = "verdict v-warn"; return; }
+        vd.classList.remove("v-warn");
+        st.done = r.res; st.marks = r.marks; st.hide = false;
+        save(); view(art); totals(); updPal(q);
+        return;
+      }
+      if (e.target.closest(".js-reveal")) {
+        if (st.done) st.hide = !st.hide;
+        else { st.done = "revealed"; st.marks = 0; st.hide = false; $(".verdict", art).classList.remove("v-warn"); }
+        save(); view(art); totals(); updPal(q);
+      }
+    });
+    paper.addEventListener("input", function (e) {
+      if (!e.target.classList.contains("js-num")) return;
+      var art = e.target.closest(".q"), q = byK[art.getAttribute("data-k")], st = state[q.k] || (state[q.k] = {});
+      st.val = e.target.value;
+      save();
+      $(".js-check", art).disabled = !hasAnswer(q, st);
+      var vd = $(".verdict", art);
+      if (vd.classList.contains("v-warn")) { vd.textContent = ""; vd.className = "verdict"; }
+      updPal(q);
+    });
+    paper.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target.classList.contains("js-num")) { e.preventDefault(); $(".js-check", e.target.closest(".q")).click(); }
+    });
+    $("#pal").addEventListener("click", function (e) {
+      if (e.target.closest(".js-palclose")) { togglePal(false); return; }
+      var b = e.target.closest(".pb[data-k]");
+      if (!b) return;
+      var q = byK[b.getAttribute("data-k")];
+      if (filter !== "all" && filter !== q.sec) { filter = "all"; applyFilter(); }
+      togglePal(false);
+      var art = document.getElementById("q" + q.n);
+      art.scrollIntoView({ block: "start" });
+      var first = $(".opt, .js-num", art);
+      if (first) first.focus({ preventScroll: true });
+    });
+    $("#filters").addEventListener("click", function (e) {
+      var c = e.target.closest(".chip");
+      if (!c) return;
+      filter = c.getAttribute("data-f");
+      applyFilter();
+      var target = filter === "all" ? $("#paper") : $('#paper .sec-h[data-sec="' + filter + '"]');
+      if (target) target.scrollIntoView({ block: "start" });
+    });
+    $("#palbtn").addEventListener("click", function () { togglePal(); });
+    var resetBtn = $("#reset"), armed = null;
+    resetBtn.addEventListener("click", function () {
+      if (!armed) {
+        resetBtn.textContent = "Confirm reset";
+        resetBtn.classList.add("armed");
+        armed = setTimeout(function () { armed = null; resetBtn.textContent = "Reset"; resetBtn.classList.remove("armed"); }, 4000);
+        return;
+      }
+      clearTimeout(armed); armed = null;
+      resetBtn.textContent = "Reset"; resetBtn.classList.remove("armed");
+      state = {}; save();
+      $$(".q").forEach(function (a) { var vd = $(".verdict", a); vd.className = "verdict"; vd.textContent = ""; view(a); });
+      QUESTIONS.forEach(updPal); totals();
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") togglePal(false); });
+  }
+  function togglePal(force) {
+    var p = $("#pal"), open = force === undefined ? !p.classList.contains("open") : force;
+    p.classList.toggle("open", open);
+    $("#palbtn").setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  /* ---------- boot ---------- */
+  DGS.hero = window.HERO;
+  render();
+  buildPal();
+  buildFilters();
+  applyFilter();
+  totals();
+  bind();
+  drawAll();
+  var mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq) { if (mq.addEventListener) mq.addEventListener("change", drawAll); else if (mq.addListener) mq.addListener(drawAll); }
+  if (window.MutationObserver) new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+
+</script>
+</body>
+</html>

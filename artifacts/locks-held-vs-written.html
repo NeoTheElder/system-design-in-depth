@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locks Held vs. Locks Written</title>
+<style>
+  :root {
+    --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --line: #e7e5e4; --code: #f0efed; --link: #1d4ed8;
+    --cds-text-primary: #1c1917; --cds-text-secondary: #6b6560; --cds-chart-axis: #78716c;
+    --cds-chart-categorical-1: #2563eb; --cds-chart-status-warning: #d97706;
+    --cds-chart-status-critical: #dc2626; --cds-chart-status-good: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1917; --fg: #f5f5f4; --muted: #a8a29e; --line: #44403c; --code: #292524; --link: #93c5fd;
+      --cds-text-primary: #f5f5f4; --cds-text-secondary: #a8a29e; --cds-chart-axis: #a8a29e;
+      --cds-chart-categorical-1: #60a5fa; --cds-chart-status-warning: #fbbf24;
+      --cds-chart-status-critical: #f87171; --cds-chart-status-good: #4ade80;
+    }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.65 Georgia, "Times New Roman", serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 80px; }
+  a { color: var(--link); }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 6px; }
+  h2 { font-size: 25px; margin: 48px 0 8px; padding-top: 12px; border-top: 2px solid var(--fg); }
+  h3 { font-size: 19px; margin: 28px 0 6px; }
+  p em { color: var(--muted); }
+  .meta { color: var(--muted); font-size: 15px; }
+  code { font: 0.85em ui-monospace, Menlo, Consolas, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 6px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  figure { margin: 20px 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14px; color: var(--muted); font-style: italic; margin-top: 4px; }
+  .tw { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { border-bottom: 1.5px solid var(--fg); }
+  tbody td:first-child { font-weight: 600; }
+  .back { font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="../">← All artifacts</a></p>
+<h1>Locks held vs. locks written</h1>
+<p class="meta">2026-11-18</p>
+<p>Read this top to bottom. Each answer raises the next question.</p>
+
+<h2>Part 1: Holding a lock</h2>
+<p><em>Two users click seat A15 at the same moment. Only one of them can get it.</em></p>
+<h3>Q1. What is the difference between a pessimistic lock and a distributed lock?</h3>
+<p>A connection holds a pessimistic lock. A distributed lock is a value written to shared storage.</p>
+<p>A held lock ends when its holder ends: at commit, at rollback, or when the connection drops. A written lock ends at its expiry time or when code deletes it.</p>
+<p><em>That is abstract. I need a picture.</em></p>
+<h3>Q2. What does that look like in real life?</h3>
+<p>A pessimistic lock is a guest in a chair at a restaurant table. Other guests wait in line at the door until that guest leaves. A distributed lock is a reservation card on the table. The guest can leave, and the card keeps the table.</p>
+<figure data-fig="ee70ad18"><figcaption>The restaurant picture · held lock vs. written lock</figcaption></figure>
+<p>The guest in the chair is the held lock. The card is the written lock.</p>
+<p><em>In the picture, other guests wait at the door. Does a database really make them wait?</em></p>
+<h3>Q3. What happens when a second transaction wants a locked row?</h3>
+<p>It waits. Transaction A holds A15 with <code>SELECT … FOR UPDATE</code>. Transaction B runs the same query and blocks in the lock-wait queue. When A commits or rolls back, B gets the lock and reads the row as A left it.</p>
+<p><em>Waiting forever sounds bad.</em></p>
+<h3>Q4. Does B ever get an error instead?</h3>
+<p>Yes, in three cases:</p>
+<ul>
+<li><code>NOWAIT</code>: the query fails at once if the row is locked.</li>
+<li>Lock timeout: PostgreSQL waits forever by default (<code>lock_timeout = 0</code>). MySQL InnoDB stops after <code>innodb_lock_wait_timeout</code>, 50 seconds by default.</li>
+<li>Deadlock: the database aborts one transaction and sends it an error.</li>
+</ul>
+<p>After an error, your code decides whether to retry or to show “unavailable.”</p>
+<figure data-fig="6863b081"><figcaption>What B experiences · wait, or one of three errors</figcaption></figure>
+<p>The top row is the normal path. The red boxes are the only ways B gets an error instead.</p>
+<p><em>Do readers get stuck in that queue too?</em></p>
+<h3>Q5. Does a plain read wait?</h3>
+<p>No. A plain <code>SELECT</code> without <code>FOR UPDATE</code> does not wait in PostgreSQL or InnoDB. It reads the last committed version. Only writes and locking reads wait.</p>
+<p><em>A checkout takes up to ten minutes. Why not keep the row lock for the whole checkout?</em></p>
+<h3>Q6. What breaks if a transaction stays open for 10 minutes?</h3>
+<p>Four things:</p>
+<ul>
+<li>Every other request for A15 waits up to ten minutes. Each waiter is also an open transaction.</li>
+<li>Each open transaction pins one database connection. With a pool of 50, 50 users in checkout use every connection.</li>
+<li>The user's “Pay now” click can reach a different app server. That server cannot continue the transaction.</li>
+<li>An old open transaction stops PostgreSQL's vacuum from removing old row versions, and grows InnoDB's undo history.</li>
+</ul>
+<p>If the app server hangs instead of crashing, its connection still looks alive. The lock stays until something closes the connection.</p>
+
+<h2>Part 2: Writing the lock as data</h2>
+<p><em>So the hold must outlive the transaction. Where can it live?</em></p>
+<h3>Q7. How do I hold a seat for 10 minutes without an open transaction?</h3>
+<p>Write the hold as data and commit at once:</p>
+<pre><code>-- 12:00: user 123 claims A15
+UPDATE seats
+SET    reserved_by    = 'user123',
+       reserved_until = now() + interval '10 minutes'
+WHERE  seat_id = 'A15'
+  AND  status  = 'available'
+  AND  (reserved_until IS NULL OR reserved_until &lt; now());
+-- 1 row updated:  user 123 owns the hold
+-- 0 rows updated: another user owns it, so show "unavailable"</code></pre>
+<p>The transaction lasts milliseconds. After the commit, only a row remains. It says user123 owns A15 until 12:10.</p>
+<p><em>No transaction is open now. What keeps the hold alive?</em></p>
+<h3>Q8. Why does the hold survive an app server crash?</h3>
+<p>No process holds it. It is a committed row that every app server can read. Only its expiry time or a delete ends it.</p>
+<p><em>And the user who comes second?</em></p>
+<h3>Q9. What does user 456 see now?</h3>
+<p>The same <code>UPDATE</code> matches zero rows and returns in milliseconds. User 456 sees “unavailable” at once, without a queue. After 12:10 the same statement succeeds, and no cleanup job is necessary.</p>
+<figure data-fig="ba7ad20d"><figcaption>User 456's experience under each lock · 12:00 to 12:10</figcaption></figure>
+<p>With the held lock, user 456 waits up to ten minutes. With the written lock, user 456 gets an answer in milliseconds.</p>
+<p><em>Why the name “distributed”?</em></p>
+<h3>Q10. What makes this lock distributed?</h3>
+<p>It lives in shared storage that all app servers use, and no single process owns it. Redis does the same with <code>SET seat:A15 user123 NX PX 600000</code>. That command sets the key only if it is absent and deletes it after ten minutes.</p>
+<p><em>A held lock always knows its owner. Does a written one?</em></p>
+<h3>Q11. What can go wrong with a lock written as data?</h3>
+<p>Two things:</p>
+<ul>
+<li>It is advisory. It protects nothing unless every code path checks it.</li>
+<li>Its holder can be stale. User 123 can click Pay at 12:11, after the hold expired and user 456 claimed the seat.</li>
+</ul>
+<p><em>So user 123's server thinks it owns A15, but it does not.</em></p>
+<h3>Q12. How do I stop a stale holder from booking?</h3>
+<p>Check ownership again in the final write:</p>
+<pre><code>-- user 123 completes checkout
+UPDATE seats
+SET    status = 'booked', booked_by = 'user123'
+WHERE  seat_id = 'A15'
+  AND  reserved_by    = 'user123'
+  AND  reserved_until &gt; now();
+-- 0 rows updated: the hold is lost, so do not confirm the booking</code></pre>
+<p>Without this check, two users can book the same seat. Use the database clock (<code>now()</code>) so clock differences between app servers cannot change the result.</p>
+<p><em>Payment happens in a different system.</em></p>
+<h3>Q13. When do I charge the card?</h3>
+<p>Only after you confirm or extend the hold. Make the charge refundable, because the payment provider and the database cannot commit together.</p>
+<p><em>Two users can still click in the same millisecond.</em></p>
+<h3>Q14. Who wins if two users claim A15 at the same moment?</h3>
+<p>The claiming <code>UPDATE</code> takes a short row lock, and that lock puts the two claims in order. The second <code>UPDATE</code> waits a few milliseconds. Then it checks the <code>WHERE</code> clause again and matches zero rows.</p>
+<figure data-fig="47862960"><figcaption>Two claims on A15 at the same moment</figcaption></figure>
+<p>Read it top to bottom. The row lock lasts only from the claim to the commit.</p>
+<p><em>So the two kinds of lock are not rivals.</em></p>
+<h3>Q15. How do the two locks fit together?</h3>
+<p>Every distributed lock is written under a short pessimistic lock. Hold a lock for milliseconds to make a decision atomic. Write a lock as data to keep ownership for minutes.</p>
+
+<h2>Part 3: Redis locks</h2>
+<p><em>Many teams keep holds in Redis. People say Redis locks are unsafe. Why?</em></p>
+<h3>Q16. Why do people push back on Redis TTL locks?</h3>
+<p>A TTL lock can have two owners for a short time. Server A works for user 123 and server B works for user 456.</p>
+<p>Server A gets the lock with <code>SET lock:A15 server-a NX PX 10000</code>. <code>NX</code> sets the key only if it is absent. <code>PX</code> sets the TTL (time to live) to 10 seconds. Then server A freezes, for example in a long GC pause. Redis deletes the key and gives the lock to server B. Server A wakes up and still writes.</p>
+<figure data-fig="e26bf249"><figcaption>Server A freezes past its 10-second TTL</figcaption></figure>
+<p>Server A freezes at 3 seconds. Redis deletes the key at 10 seconds and gives the lock to server B at 11 seconds. Server A wakes up at 17 seconds and still writes.</p>
+<p><em>Did Redis do something wrong?</em></p>
+<h3>Q17. Is the expiry a Redis bug?</h3>
+<p>No. The expiry proves that Redis stopped listing server A as the owner. It does not prove that server A stopped working.</p>
+<p><em>Is the pause the only risk?</em></p>
+<h3>Q18. Can Redis lose a lock some other way?</h3>
+<p>Yes, on failover. Redis copies data to replicas asynchronously. If the primary fails before it copies a new lock key, the promoted replica does not have the key, and another client can get the same lock.</p>
+<p><em>Redis knows that server B owns the lock now. Why doesn't Redis block server A?</em></p>
+<h3>Q19. Why can't Redis stop the stale write?</h3>
+<p>Redis sees only the commands that acquire, renew and release the key. Server A sends its <code>UPDATE</code> straight to the database. Redis is not on that path.</p>
+<figure data-fig="53529ce0"><figcaption>Two separate paths out of server A</figcaption></figure>
+<p>The red path never passes through Redis. That is the gap a fencing token closes.</p>
+<p><em>Then something on the write path must catch it.</em></p>
+<h3>Q20. Who must reject the stale write?</h3>
+<p>The database. It needs evidence that the write is stale, and a fencing token is that evidence.</p>
+<p><em>What does that evidence look like?</em></p>
+<h3>Q21. What is a fencing token?</h3>
+<p>A number that increases with every lock grant. The holder sends its token with every write. The database keeps the highest token it accepted and rejects any lower one.</p>
+<figure data-fig="957d7b79"><figcaption>Fencing tokens 33 and 34 reach the database</figcaption></figure>
+<p>Redis gives token 33 to server A and token 34 to server B. The database accepts 34 first, so the late write with 33 fails.</p>
+<p><em>What if server A sends the write without its token?</em></p>
+<h3>Q22. Does the token have to travel with the write?</h3>
+<p>Yes. Without a token, the database has nothing to compare. Server A's stale write can then overwrite server B's valid work.</p>
+<p><em>Where do I get such a number?</em></p>
+<h3>Q23. Where do fencing tokens come from?</h3>
+<p>Plain Redis <code>SET NX</code> gives no such number. ZooKeeper (the zxid) and etcd (the key revision) give one with each lock. The <code>reserved_by</code> check in Q12 does the same job inside the database.</p>
+<p><em>If Redis can give one lock to two servers, why does anyone use it for ticket holds?</em></p>
+<h3>Q24. Why is Redis still fine for a seat hold?</h3>
+<p>The Redis lock is not the final authority. The final sale is a conditional write in the database, so only one sale of A15 can succeed. A rare double grant becomes a UX glitch, not corrupt data.</p>
+<p><em>But if the conditional write is the real guard, why have a lock at all?</em></p>
+<h3>Q25. Why not use only the conditional write?</h3>
+<p>The two do different jobs. The conditional write keeps the data correct. The hold tells user 456 “unavailable” at once, so user 456 does not type card details and then fail at the last step.</p>
+<figure data-fig="1a0e6792"><figcaption>Seat hold in two layers · Redis for UX, database for correctness</figcaption></figure>
+<p>Layer 1 can be wrong for a moment. Layer 2 cannot, because only one conditional write can match.</p>
+<p><em>When is “a UX glitch” not acceptable?</em></p>
+<h3>Q26. When is a plain TTL lock not enough?</h3>
+<p>When two owners could do damage that you cannot undo, such as moving money twice or sending conflicting commands to hardware. Then add fencing tokens or use a stronger coordinator.</p>
+
+<h2>Part 4: ZooKeeper</h2>
+<p><em>The usual stronger coordinator is ZooKeeper.</em></p>
+<h3>Q27. Does ZooKeeper fix the paused-server problem?</h3>
+<p>No. A ZooKeeper lock is an ephemeral znode tied to the client's session. If the client freezes past the session timeout, ZooKeeper deletes the znode and gives the lock to the next client. The frozen client can wake up and act before it learns this.</p>
+<p><em>Then why do people call it stronger?</em></p>
+<h3>Q28. What does ZooKeeper add over Redis?</h3>
+<p>Lock state that survives a failover, and a built-in fencing token. The protected resource must still check that token.</p>
+<div class="tw"><table>
+<thead><tr><th></th><th>Redis (<code>SET NX PX</code>)</th><th>ZooKeeper (ephemeral znode)</th></tr></thead>
+<tbody>
+<tr><td>Lock ends when</td><td>The TTL passes</td><td>The session ends (missed heartbeats)</td></tr>
+<tr><td>Replication</td><td>Asynchronous: a failover can lose a lock</td><td>Quorum writes: a failover keeps the lock</td></tr>
+<tr><td>Paused holder can act late</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Fencing token</td><td>None built in</td><td>The zxid of the lock znode</td></tr>
+<tr><td>Cost to run</td><td>Low, often already in the stack</td><td>A 3- or 5-node cluster to operate</td></tr>
+<tr><td>Good fit</td><td>Seat holds, job deduplication</td><td>Leader election, writes where two owners corrupt data</td></tr>
+</tbody>
+</table></div>
+<p><em>So which one do I pick?</em></p>
+<h3>Q29. Redis or ZooKeeper?</h3>
+<p>Redis for short, best-effort holds such as a checkout reservation. ZooKeeper when two owners would corrupt data and your team can run a coordination cluster.</p>
+
+<h2>Part 5: Side by side</h2>
+<h3>Q30. How do the two kinds of lock compare at a glance?</h3>
+<div class="tw"><table>
+<thead><tr><th></th><th>Pessimistic lock</th><th>Distributed lock</th></tr></thead>
+<tbody>
+<tr><td>What it is</td><td>A lock that a connection holds</td><td>A value in shared storage</td></tr>
+<tr><td>Example</td><td><code>SELECT … FOR UPDATE</code></td><td><code>reserved_until</code> column, Redis key with a TTL</td></tr>
+<tr><td>Ends at</td><td>Commit, rollback or a lost connection</td><td>Expiry or an explicit delete</td></tr>
+<tr><td>Normal lifetime</td><td>Milliseconds</td><td>Seconds to minutes</td></tr>
+<tr><td>Other requests</td><td>Wait in a queue (error on timeout, <code>NOWAIT</code> or deadlock)</td><td>Read it and get an answer at once</td></tr>
+<tr><td>Enforced by</td><td>The database, for every writer</td><td>Your code, where it checks</td></tr>
+<tr><td>Main risk</td><td>Long waits, no free connections</td><td>A stale holder after expiry</td></tr>
+<tr><td>Safety net</td><td>The database releases it when the connection drops</td><td>The final write checks ownership again</td></tr>
+</tbody>
+</table></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
+<script type="text/babel">
+const F = {};
+
+F["ee70ad18"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 6} ${(y1 + y2) / 2 + jt(s + 1) * 6} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#pic-arrow)'/>; const fig = (x, y, s) => <g fill='none' stroke={ink} strokeWidth='1.6' strokeLinecap='round'><circle cx={x} cy={y} r='9'/><path d={`M${x} ${y + 9}L${x + jt(s)} ${y + 38}M${x} ${y + 18}L${x - 12} ${y + 30 + jt(s + 1)}M${x} ${y + 18}L${x + 12} ${y + 28 + jt(s + 2)}M${x} ${y + 38}L${x - 10} ${y + 58}M${x} ${y + 38}L${x + 10} ${y + 58}`}/></g>; return <svg viewBox='0 0 760 432' role='img' aria-label='Sitting holds the table. A card only reserves it.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='pic-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>Sitting holds the table. A card only reserves it.</text><g>{rr(24, 52, 348, 356, 1, edge, 0)}<text x='40' y='80' fontWeight='700' fill={ink}>Held lock: you sit at the table</text>{rr(110, 150, 120, 60, 31, amber, 0.2)}<g fill='none' stroke={ink} strokeWidth='1.6' strokeLinecap='round'><circle cx='170' cy='122' r='10'/><path d='M170 132L170 150M170 140L150 152M170 140L190 152'/></g><text x='205' y='114' fontSize='13' fill={quiet}>you = the connection</text>{rr(40, 244, 24, 84, 41, edge, 0.08)}<text x='52' y='236' textAnchor='middle' fontSize='12' fill={quiet}>door</text>{fig(100, 252, 51)}{fig(138, 252, 52)}{fig(176, 252, 53)}{ar(200, 258, 206, 220, 61)}<text x='216' y='250' fontSize='13' fill={ink}>waiting</text><text x='138' y='336' textAnchor='middle' fontSize='13' fill={quiet}>the lock-wait queue</text><text x='40' y='370' fontSize='12.5' fill={ink}>Leave (commit) or faint (connection dies),</text><text x='40' y='390' fontSize='12.5' fill={ink}>and only then is the table free.</text></g><g>{rr(388, 52, 348, 356, 2, edge, 0)}<text x='404' y='80' fontWeight='700' fill={ink}>Written lock: a card on the table</text>{rr(450, 150, 180, 64, 32, amber, 0.2)}{rr(475, 158, 130, 46, 33, blue, 0.14)}<text x='540' y='177' textAnchor='middle' fontSize='12.5' fill={ink}>Reserved: user123</text><text x='540' y='195' textAnchor='middle' fontSize='12.5' fill={ink}>until 12:10</text>{fig(694, 124, 71)}<text x='694' y='106' textAnchor='middle' fontSize='13' fill={quiet}>you left</text>{fig(470, 252, 81)}{fig(612, 252, 82)}{ar(456, 292, 418, 318, 91)}{ar(626, 292, 668, 318, 92)}<text x='562' y='346' textAnchor='middle' fontSize='13' fill={quiet}>guests read the card and go elsewhere</text><text x='404' y='370' fontSize='12.5' fill={ink}>The card works only until 12:10.</text><text x='404' y='390' fontSize='12.5' fill={ink}>After that the host can give the table away.</text></g></svg>; };
+
+F["6863b081"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 6} ${(y1 + y2) / 2 + jt(s + 1) * 6} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#wait-arrow)'/>; return <svg viewBox='0 0 760 452' role='img' aria-label='B waits by default. Three cases turn the wait into an error.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='wait-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>B waits by default. Three cases turn the wait into an error.</text><g>{ar(177, 120, 207, 120, 1)}{ar(362, 120, 392, 120, 2)}{ar(547, 120, 577, 120, 3)}{ar(275, 150, 128, 240, 4)}{ar(290, 150, 300, 240, 5)}{ar(305, 150, 470, 240, 6)}{ar(130, 300, 220, 370, 7)}{ar(300, 300, 300, 370, 8)}{ar(470, 300, 380, 370, 9)}</g><g>{rr(25, 92, 150, 56, 11, edge, 0)}<text x='100' y='116' textAnchor='middle' fill={ink}>B runs</text><text x='100' y='136' textAnchor='middle' fontSize='13' fill={ink}>FOR UPDATE on A15</text></g><g>{rr(210, 92, 150, 56, 12, blue, 0.14)}<text x='285' y='116' textAnchor='middle' fill={ink}>Waits in the</text><text x='285' y='136' textAnchor='middle' fill={ink}>lock-wait queue</text></g><g>{rr(395, 92, 150, 56, 13, edge, 0)}<text x='470' y='116' textAnchor='middle' fill={ink}>A commits</text><text x='470' y='136' textAnchor='middle' fill={ink}>or rolls back</text></g><g>{rr(580, 92, 150, 56, 14, green, 0.16)}<text x='655' y='116' textAnchor='middle' fill={ink}>B gets the lock</text><text x='655' y='136' textAnchor='middle' fontSize='13' fill={ink}>and reads A's row</text></g><g>{rr(40, 242, 160, 56, 21, red, 0.12)}<text x='120' y='266' textAnchor='middle' fontWeight='700' fill={ink}>NOWAIT</text><text x='120' y='286' textAnchor='middle' fontSize='13' fill={ink}>error at once</text></g><g>{rr(220, 242, 160, 56, 22, red, 0.12)}<text x='300' y='266' textAnchor='middle' fontWeight='700' fill={ink}>Lock timeout</text><text x='300' y='286' textAnchor='middle' fontSize='13' fill={ink}>error after waiting</text></g><g>{rr(400, 242, 160, 56, 23, red, 0.12)}<text x='480' y='266' textAnchor='middle' fontWeight='700' fill={ink}>Deadlock</text><text x='480' y='286' textAnchor='middle' fontSize='13' fill={ink}>one txn is aborted</text></g><g><text x='590' y='262' fontSize='12.5' fill={quiet}>No timeout set?</text><text x='590' y='280' fontSize='12.5' fill={quiet}>PostgreSQL waits</text><text x='590' y='298' fontSize='12.5' fill={quiet}>forever.</text></g><g>{rr(160, 372, 280, 56, 31, blue, 0.08)}<text x='300' y='396' textAnchor='middle' fontWeight='700' fill={ink}>App decides:</text><text x='300' y='416' textAnchor='middle' fontSize='13' fill={ink}>retry, or show “unavailable”</text></g></svg>; };
+
+F["ba7ad20d"] = () => { const L = 160, R = 700; const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', accent = 'var(--cds-chart-categorical-1)', bad = 'var(--cds-chart-status-critical)', good = 'var(--cds-chart-status-good)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; return <svg viewBox='0 0 760 412' role='img' aria-label='A held lock makes others wait. A written lock answers at once.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='13'><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>A held lock makes others wait. A written lock answers at once.</text><g><text x='24' y='72' fontSize='14' fontWeight='700' fill={ink}>Pessimistic: user 123 holds the row lock for the whole checkout</text><text x={L} y='94' fontSize='12' fill={quiet}>12:00</text><text x={R} y='94' textAnchor='end' fontSize='12' fill={quiet}>12:10</text></g><g>{rr(L, 104, R - L, 32, 1, accent, 0.14)}<text x='24' y='124' fontWeight='700' fill={ink}>User 123</text><text x={L + 12} y='124' fontSize='12.5' fill={ink}>Transaction open · row lock held · connection pinned</text></g><g>{rr(L + 60, 148, R - L - 60, 32, 2, bad, 0.14)}<text x='24' y='168' fontWeight='700' fill={ink}>User 456</text><text x={L + 72} y='168' fontSize='12.5' fill={ink}>Waits in the lock queue · its connection is pinned too</text><text x={R} y='204' textAnchor='end' fontSize='12' fill={quiet}>User 456 gets the lock only after user 123 commits</text></g><g><path d={`M24 ${226 + jt(41)} L380 ${226 + jt(42)} L736 ${226 + jt(43)}`} fill='none' stroke={edge} strokeWidth='1.2' strokeLinecap='round'/></g><g><text x='24' y='256' fontSize='14' fontWeight='700' fill={ink}>Distributed: user 123 writes the hold as data and holds nothing</text><text x={L} y='278' fontSize='12' fill={quiet}>12:00</text><text x={R} y='278' textAnchor='end' fontSize='12' fill={quiet}>12:10</text></g><g>{rr(L, 288, 20, 32, 3, accent, 0.16)}<rect x={L + 28} y='288' width={R - L - 28} height='32' rx='6' fill={edge} fillOpacity='0.08' stroke={edge} strokeWidth='1.4' strokeDasharray='6 5'/><text x='24' y='308' fontWeight='700' fill={ink}>User 123</text><text x={L + 40} y='308' fontSize='12.5' fill={ink}>Committed in ms · now just data: reserved_until = 12:10</text></g><g>{rr(L + 60, 332, 20, 32, 4, good, 0.18)}<text x='24' y='352' fontWeight='700' fill={ink}>User 456</text><text x={L + 92} y='352' fontSize='12.5' fill={ink}>Reads the row → instant “unavailable” · nothing held</text><text x={R} y='388' textAnchor='end' fontSize='12' fill={quiet}>After 12:10 the same check succeeds. No cleanup job.</text></g></svg>; };
+
+F["47862960"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', amber = 'var(--cds-chart-status-warning)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 4} ${(y1 + y2) / 2 + jt(s + 1) * 4} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#race-arrow)'/>; return <svg viewBox='0 0 760 452' role='img' aria-label='The row lock lets one claim win. The other matches zero rows.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='race-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>The row lock lets one claim win. The other matches zero rows.</text><g fill='none' stroke={quiet} strokeWidth='1.2' strokeDasharray='5 6'><path d='M120 100V432'/><path d='M380 100V152M380 192V206M380 258V340M380 392V432'/><path d='M640 100V152M640 300V432'/></g><g>{rr(25, 56, 190, 44, 1, edge, 0.04)}<text x='120' y='83' textAnchor='middle' fontWeight='700' fill={ink}>User 123's UPDATE</text></g><g>{rr(285, 56, 190, 44, 2, amber, 0.18)}<text x='380' y='83' textAnchor='middle' fontWeight='700' fill={ink}>Row A15 in the DB</text></g><g>{rr(545, 56, 190, 44, 3, edge, 0.04)}<text x='640' y='83' textAnchor='middle' fontWeight='700' fill={ink}>User 456's UPDATE</text></g><g>{ar(122, 135, 374, 135, 11)}{ar(638, 135, 386, 135, 12)}<text x='249' y='125' textAnchor='middle' fontSize='13' fill={ink}>claim A15</text><text x='511' y='125' textAnchor='middle' fontSize='13' fill={ink}>claim A15 (same moment)</text></g><g>{rr(300, 152, 160, 40, 21, green, 0.16)}<text x='380' y='177' textAnchor='middle' fontSize='13' fill={ink}>row lock goes to 123</text></g><g>{rr(570, 152, 140, 148, 22, edge, 0.08)}<text x='640' y='218' textAnchor='middle' fontSize='13' fill={ink}>waits for</text><text x='640' y='238' textAnchor='middle' fontSize='13' fill={ink}>the row lock</text></g><g>{rr(300, 206, 160, 52, 23, edge, 0.04)}<text x='380' y='228' textAnchor='middle' fontSize='13' fill={ink}>WHERE matches,</text><text x='380' y='247' textAnchor='middle' fontSize='13' fill={ink}>write, commit</text></g><g>{ar(376, 282, 124, 282, 31)}<text x='250' y='272' textAnchor='middle' fontSize='13' fill={ink}>1 row updated ✓</text></g><g>{ar(384, 322, 636, 322, 32)}<text x='510' y='312' textAnchor='middle' fontSize='13' fill={ink}>lock free: check WHERE again</text></g><g>{rr(300, 340, 160, 52, 33, red, 0.12)}<text x='380' y='362' textAnchor='middle' fontSize='13' fill={ink}>hold is taken,</text><text x='380' y='381' textAnchor='middle' fontSize='13' fill={ink}>so 0 rows match</text></g><g>{ar(384, 416, 636, 416, 34)}<text x='510' y='406' textAnchor='middle' fontSize='13' fill={ink}>0 rows: show “unavailable”</text></g></svg>; };
+
+F["e26bf249"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; return <svg viewBox='0 0 760 372' role='img' aria-label='The TTL proves Redis forgot server A, not that server A stopped.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><text x='24' y='28' fontSize='18' fontWeight='700' fill={ink}>The TTL proves Redis forgot server A, not that server A stopped.</text><g><rect x='592' y='86' width='130' height='220' rx='10' fill={red} fillOpacity='0.08' stroke='none'/></g><g fill='none' stroke={edge} strokeWidth='1.5' strokeLinecap='round'><path d={`M150 ${72 + jt(1)} L436 ${72 + jt(2)} L722 ${72 + jt(3)}`}/><path d='M150 66V78M228 66V78M410 66V78M592 66V78'/></g><text x='150' y='58' textAnchor='middle' fontSize='12' fill={quiet}>0 s</text><text x='228' y='58' textAnchor='middle' fontSize='12' fill={quiet}>3 s</text><text x='410' y='58' textAnchor='middle' fontSize='12' fill={quiet}>10 s</text><text x='592' y='58' textAnchor='middle' fontSize='12' fill={quiet}>17 s</text><g><text x='24' y='119' fontWeight='700' fill={ink}>Server A</text>{rr(150, 94, 78, 40, 11, green, 0.16)}<text x='189' y='119' textAnchor='middle' fontSize='13' fill={ink}>has lock</text>{rr(234, 94, 352, 40, 12, edge, 0.1)}<text x='410' y='119' textAnchor='middle' fontSize='13' fill={ink}>frozen (long GC pause)</text>{rr(596, 94, 126, 40, 13, red, 0.18)}<text x='659' y='119' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>writes A15!</text></g><g><text x='24' y='199' fontWeight='700' fill={ink}>Redis</text>{rr(150, 174, 260, 40, 21, blue, 0.14)}<text x='280' y='199' textAnchor='middle' fontSize='13' fill={ink}>key = server-a, TTL 10 s</text><path d='M415 186L431 202M431 186L415 202' fill='none' stroke={red} strokeWidth='2' strokeLinecap='round'/><text x='423' y='236' textAnchor='middle' fontSize='12' fill={quiet}>TTL ends</text>{rr(436, 174, 286, 40, 22, blue, 0.14)}<text x='579' y='199' textAnchor='middle' fontSize='13' fill={ink}>key = server-b</text></g><g><text x='24' y='279' fontWeight='700' fill={ink}>Server B</text>{rr(436, 254, 286, 40, 31, green, 0.16)}<text x='579' y='279' textAnchor='middle' fontSize='13' fill={ink}>has lock from 11 s</text></g><g><text x='722' y='332' textAnchor='end' fontSize='13' fontWeight='700' fill={ink}>From 17 s, both servers</text><text x='722' y='352' textAnchor='end' fontSize='13' fontWeight='700' fill={ink}>act as the owner of A15</text></g></svg>; };
+
+F["53529ce0"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s, col, mk) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 5} ${(y1 + y2) / 2 + jt(s + 1) * 5} ${x2} ${y2}`} fill='none' stroke={col} strokeWidth='1.8' strokeLinecap='round' markerEnd={mk}/>; return <svg viewBox='0 0 760 428' role='img' aria-label='Redis guards the key. Only the database can guard the row.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='sees-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker><marker id='sees-arrow-red' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={red} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>Redis guards the key. Only the database can guard the row.</text><g>{rr(40, 175, 190, 70, 1, edge, 0.06)}<text x='135' y='204' textAnchor='middle' fontWeight='700' fill={ink}>Server A</text><text x='135' y='226' textAnchor='middle' fontSize='13' fill={quiet}>wakes up at 17 s</text></g><g>{rr(470, 70, 240, 70, 2, blue, 0.14)}<text x='590' y='99' textAnchor='middle' fontWeight='700' fill={ink}>Redis</text><text x='590' y='121' textAnchor='middle' fontSize='13' fill={ink}>lock:A15 = server-b</text></g><g>{rr(470, 290, 240, 70, 3, amber, 0.18)}<text x='590' y='319' textAnchor='middle' fontWeight='700' fill={ink}>Database</text><text x='590' y='341' textAnchor='middle' fontSize='13' fill={ink}>row A15 in seats</text></g><g>{ar(232, 190, 466, 112, 11, edge, 'url(#sees-arrow)')}<text x='236' y='118' fontSize='13' fill={ink}>lock commands</text><text x='236' y='136' fontSize='12.5' fill={quiet}>Redis sees these</text></g><g>{ar(232, 232, 466, 318, 12, red, 'url(#sees-arrow-red)')}<text x='236' y='300' fontSize='13' fontWeight='700' fill={ink}>UPDATE seat A15</text><text x='236' y='318' fontSize='12.5' fill={quiet}>Redis never sees this</text></g><g><path d='M590 144V286' fill='none' stroke={quiet} strokeWidth='1.3' strokeDasharray='5 6'/><path d='M581 206L599 224M599 206L581 224' fill='none' stroke={red} strokeWidth='2' strokeLinecap='round'/><text x='608' y='220' fontSize='13' fill={quiet}>no link</text></g><text x='24' y='404' fontSize='13' fill={ink}>Redis can reject server A only when server A sends Redis a command.</text></svg>; };
+
+F["957d7b79"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s, col, mk) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 4} ${(y1 + y2) / 2 + jt(s + 1) * 4} ${x2} ${y2}`} fill='none' stroke={col} strokeWidth='1.7' strokeLinecap='round' markerEnd={mk}/>; return <svg viewBox='0 0 760 470' role='img' aria-label='The database keeps the highest token and rejects older ones.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='fence-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker><marker id='fence-arrow-red' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={red} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>The database keeps the highest token and rejects older ones.</text><g fill='none' stroke={quiet} strokeWidth='1.2' strokeDasharray='5 6'><path d='M100 96V148M100 362V470'/><path d='M290 96V160M290 194V470'/><path d='M480 96V470'/><path d='M660 96V290M660 326V400M660 440V470'/></g><g>{rr(30, 56, 140, 40, 1, edge, 0.05)}<text x='100' y='81' textAnchor='middle' fontWeight='700' fill={ink}>Server A</text></g><g>{rr(220, 56, 140, 40, 2, blue, 0.14)}<text x='290' y='81' textAnchor='middle' fontWeight='700' fill={ink}>Redis</text></g><g>{rr(410, 56, 140, 40, 3, edge, 0.05)}<text x='480' y='81' textAnchor='middle' fontWeight='700' fill={ink}>Server B</text></g><g>{rr(590, 56, 140, 40, 4, amber, 0.18)}<text x='660' y='81' textAnchor='middle' fontWeight='700' fill={ink}>Database</text></g><g>{ar(288, 130, 104, 130, 11, edge, 'url(#fence-arrow)')}<text x='195' y='120' textAnchor='middle' fontSize='13' fill={ink}>lock, token 33</text></g><g>{rr(80, 148, 40, 214, 12, edge, 0.12)}<text x='132' y='260' fontSize='13' fill={quiet}>frozen</text></g><g>{rr(244, 160, 92, 34, 13, red, 0.12)}<text x='290' y='182' textAnchor='middle' fontSize='13' fill={ink}>TTL ends</text></g><g>{ar(292, 226, 476, 226, 14, edge, 'url(#fence-arrow)')}<text x='384' y='216' textAnchor='middle' fontSize='13' fill={ink}>lock, token 34</text></g><g>{ar(484, 274, 656, 274, 15, edge, 'url(#fence-arrow)')}<text x='570' y='264' textAnchor='middle' fontSize='13' fill={ink}>write, token 34</text></g><g>{rr(600, 290, 120, 36, 16, green, 0.16)}<text x='660' y='313' textAnchor='middle' fontSize='13' fill={ink}>max = 34 ✓</text></g><g>{ar(104, 386, 656, 386, 17, red, 'url(#fence-arrow-red)')}<text x='570' y='356' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>write, token 33</text><text x='570' y='374' textAnchor='middle' fontSize='12.5' fill={quiet}>(server A woke up)</text></g><g>{rr(585, 400, 150, 40, 18, red, 0.16)}<text x='660' y='425' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>33 &lt; 34: rejected</text></g></svg>; };
+
+F["1a0e6792"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', green = 'var(--cds-chart-status-good)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const rd = (cx, cy, w, h, s, col, op) => { const p = k => `M${cx + jt(s + k)} ${cy - h / 2 + jt(s + k + 1)} L${cx + w / 2 + jt(s + k + 2)} ${cy + jt(s + k + 3)} L${cx + jt(s + k + 4)} ${cy + h / 2 + jt(s + k + 5)} L${cx - w / 2 + jt(s + k + 6)} ${cy + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 3} ${(y1 + y2) / 2 + jt(s + 1) * 3} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#layer-arrow)'/>; return <svg viewBox='0 0 760 710' role='img' aria-label='Layer 1 makes it fast. Layer 2 makes it correct.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='layer-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='32' fontSize='18' fontWeight='700' fill={ink}>Layer 1 makes it fast. Layer 2 makes it correct.</text><g><rect x='90' y='140' width='646' height='182' rx='14' fill={blue} fillOpacity='0.04' stroke={blue} strokeWidth='1.3' strokeDasharray='7 6'/><text x='724' y='164' textAnchor='end' fontWeight='700' fill={ink}>Layer 1 · Redis hold · UX</text></g><g><rect x='90' y='410' width='646' height='202' rx='14' fill={amber} fillOpacity='0.05' stroke={amber} strokeWidth='1.3' strokeDasharray='7 6'/><text x='724' y='434' textAnchor='end' fontWeight='700' fill={ink}>Layer 2 · DB write · correctness</text></g><g>{ar(250, 116, 250, 156, 1)}{ar(250, 206, 250, 228, 2)}{ar(326, 270, 426, 270, 3)}{ar(250, 311, 250, 336, 4)}{ar(250, 386, 250, 426, 5)}{ar(250, 492, 250, 516, 6)}{ar(342, 560, 426, 560, 7)}{ar(250, 603, 250, 636, 8)}</g><g>{rr(110, 70, 280, 44, 11, edge, 0.04)}<text x='250' y='97' textAnchor='middle' fill={ink}>A user picks seat A15</text></g><g>{rr(110, 160, 280, 44, 12, blue, 0.14)}<text x='250' y='187' textAnchor='middle' fill={ink}>Redis: SET NX with a TTL</text></g><g>{rd(250, 270, 150, 80, 13, edge, 0.05)}<text x='250' y='275' textAnchor='middle' fill={ink}>Key free?</text></g><text x='376' y='260' textAnchor='middle' fontSize='12.5' fill={quiet}>no</text><g>{rr(430, 248, 280, 44, 14, green, 0.16)}<text x='570' y='275' textAnchor='middle' fill={ink}>Shows “unavailable” at once</text></g><text x='262' y='328' fontSize='12.5' fill={quiet}>yes</text><g>{rr(110, 340, 280, 44, 15, edge, 0.04)}<text x='250' y='367' textAnchor='middle' fill={ink}>Checkout, up to 10 minutes</text></g><g><text x='430' y='358' fontSize='12.5' fill={quiet}>Rare double grant? Both users reach</text><text x='430' y='376' fontSize='12.5' fill={quiet}>layer 2, and only one sale succeeds.</text></g><g>{rr(110, 430, 280, 60, 16, amber, 0.18)}<text x='250' y='455' textAnchor='middle' fontSize='13' fill={ink}>DB: UPDATE … SET status = 'sold'</text><text x='250' y='475' textAnchor='middle' fontSize='13' fill={ink}>WHERE status = 'available'</text></g><g>{rd(250, 560, 180, 84, 17, edge, 0.05)}<text x='250' y='565' textAnchor='middle' fill={ink}>1 row updated?</text></g><text x='384' y='550' textAnchor='middle' fontSize='12.5' fill={quiet}>no</text><g>{rr(430, 538, 280, 44, 18, amber, 0.2)}<text x='570' y='565' textAnchor='middle' fill={ink}>Shows “seat just sold”</text></g><text x='262' y='626' fontSize='12.5' fill={quiet}>yes</text><g>{rr(110, 640, 280, 44, 19, green, 0.16)}<text x='250' y='667' textAnchor='middle' fontWeight='700' fill={ink}>Sold to exactly one user</text></g></svg>; };
+
+document.querySelectorAll('figure[data-fig]').forEach(f => {
+  const Fig = F[f.dataset.fig];
+  if (!Fig) return;
+  const slot = document.createElement('div');
+  f.prepend(slot);
+  ReactDOM.createRoot(slot).render(<Fig />);
+});
+</script>
+</body>
+</html>
