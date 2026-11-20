@@ -259,7 +259,15 @@ WHERE  seat_id = 'A15' AND last_fencing_token &lt;= 33;
 <p><em>So when is the glitch not acceptable?</em></p>
 
 <h3>Q28. When is a plain TTL lock not enough?</h3>
-<p>When a stale write does damage that you cannot undo, as in Q25. Then the protected resource must check fencing tokens. A stronger coordinator also helps, as Part 4 shows.</p>
+<p>A plain TTL lock is enough only when two things are true. Every write it protects checks its own condition in the same atomic step, as in Q12 and Q26. And the holder does nothing else that you cannot undo.</p>
+<p>It is not enough in these cases:</p>
+<ul>
+<li>The write has no condition. In Q25, <code>SET balance = 70</code> checks nothing. <code>SET balance = 70 WHERE balance = 100</code> would match zero rows and save the deposit.</li>
+<li>The holder has other side effects, such as a card charge, an email, an outside API call or a device command.</li>
+<li>The holder writes several rows, and only the last write checks anything.</li>
+</ul>
+<p>Then each write needs its own condition, or the resource must check fencing tokens. A stronger coordinator also helps, as Part 4 shows.</p>
+<p>A conditional write protects the rule, not the owner. In the double-grant window, stale user 123 can still win the seat. The data stays correct, but the wrong user gets it.</p>
 
 <h2>Part 4: ZooKeeper and etcd</h2>
 <p><em>The usual stronger coordinators are ZooKeeper and etcd.</em></p>
@@ -297,8 +305,94 @@ WHERE  seat_id = 'A15' AND last_fencing_token &lt;= 33;
 <figure data-fig="4e1fc2a7"><figcaption>A lease row as a hotspot vs. a Redis lease</figcaption></figure>
 <p>On the left, every claim becomes a database write on one row. On the right, only the final sale reaches the database.</p>
 
-<h2>Part 5: The whole chain</h2>
-<h3>Q33. Can I say all of this as one chain?</h3>
+<h2>Part 5: Which tool does a write need?</h2>
+<p><em>Step back. A distributed lock is one tool among several. How do I pick the right one for a write?</em></p>
+
+<h3>Q33. What does “a predicate on the row you write” mean?</h3>
+<p>A predicate is a true-or-false condition. In a conditional write, the <code>WHERE</code> clause holds a predicate on the same row that the write changes:</p>
+<pre><code>UPDATE seats SET status = 'sold'
+WHERE  seat_id = 'A15' AND status = 'available';</code></pre>
+<p>This says “sell A15 only if A15 is still available.” The database checks the predicate and writes in one atomic step.</p>
+<p><em>So if the row can answer the question, I need nothing else?</em></p>
+
+<h3>Q34. When is a conditional write enough?</h3>
+<p>When the database can decide from the current values of the row you write. Then a conditional write is the best default, and you need no lock.</p>
+<p><em>And when the row cannot answer?</em></p>
+
+<h3>Q35. When must the check live in application code?</h3>
+<p>When one condition on one row cannot express the decision. Two common cases:</p>
+<ul>
+<li>Several rows decide. To find four free seats side by side, the code reads the seat map and picks a block.</li>
+<li>Outside information decides. The code picks the least-busy support agent, or calls another service first.</li>
+</ul>
+<p>The rows can then change between the read and the write. That is the check-then-act gap from Q11 again, so the code needs a lock.</p>
+<p><em>Which kind of lock?</em></p>
+
+<h3>Q36. Should I use a pessimistic or an optimistic lock?</h3>
+<p>It depends on how often requests collide.</p>
+<ul>
+<li>Collisions are common: use a pessimistic lock (<code>SELECT … FOR UPDATE</code>). The rows stay unchanged while the code decides, and other requests wait.</li>
+<li>Collisions are rare: use optimistic concurrency. Read a version number, decide, and write only if the version did not change. On zero rows, read again and retry.</li>
+</ul>
+<pre><code>-- read earlier: Maya has 3 open tickets, version 12
+UPDATE agents
+SET    open_tickets = open_tickets + 1, version = version + 1
+WHERE  agent_id = 'maya' AND version = 12;
+-- 0 rows updated: Maya's row changed, so read again and retry</code></pre>
+<p>The version number does the same job as a fencing token (Q20). The difference is that the database issues it, not a lock service.</p>
+<p><em>Both kinds protect the rows I write. What if the rule covers rows I only read?</em></p>
+
+<h3>Q37. What is write skew?</h3>
+<p>An invariant is a rule that must always be true. For example, at least one engineer is always on call.</p>
+<p>Alice and Bob are both on call. Each reads the table and sees two engineers on call. Each then sets only their own row to off call. The two writes touch different rows, so they never collide, and no row lock or version check fires. Both writes succeed, and nobody is on call. This is write skew.</p>
+<figure data-fig="97c7abec"><figcaption>Write skew on the on-call rule, and the one-row fix</figcaption></figure>
+<p>At the top, both writes succeed because they touch different rows. At the bottom, both target one row, so Bob's write matches zero rows.</p>
+<p><em>How do I stop it?</em></p>
+
+<h3>Q38. How do I protect a rule that spans rows?</h3>
+<p>Three ways:</p>
+<ul>
+<li>Run the transaction at SERIALIZABLE isolation (Q39). The database aborts one of the two transactions.</li>
+<li>Lock the rows you read with <code>SELECT … FOR UPDATE</code>. Bob then waits for Alice and sees only one engineer left. This works only for rows that already exist.</li>
+<li>Move the rule into one row. Keep <code>on_call_count</code> on the team row, and step down with a conditional write. Both requests now write the same row, so they collide, and the predicate decides:</li>
+</ul>
+<pre><code>UPDATE teams SET on_call_count = on_call_count - 1
+WHERE  team_id = 'payments' AND on_call_count &gt; 1;</code></pre>
+<p><em>What does SERIALIZABLE look like in practice?</em></p>
+
+<h3>Q39. How do I run a transaction at SERIALIZABLE isolation?</h3>
+<p>Set the level when you begin the transaction:</p>
+<pre><code>BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SELECT count(*) FROM on_call
+WHERE  team_id = 'payments' AND is_active = true;
+UPDATE on_call SET is_active = false WHERE engineer_id = 'alice';
+COMMIT;</code></pre>
+<p>The database detects transactions whose combined result could not happen one at a time. It aborts one of them with a serialization error. Your code must retry that transaction, and the retry sees the other transaction's change.</p>
+<p><em>Every tool so far lives inside one short transaction. What if the hold must outlive it?</em></p>
+
+<h3>Q40. When do I need a distributed lock?</h3>
+<p>When exclusive access must outlive one short transaction, because the protected work includes a wait, several steps or an outside call. A seat hold during checkout is one case. Others are:</p>
+<ul>
+<li>one worker runs a scheduled job,</li>
+<li>one server generates the monthly report,</li>
+<li>a delivery driver stays reserved while you wait for a reply.</li>
+</ul>
+<p>Parts 2 to 4 cover how to build one.</p>
+<p><em>That is a lot of tools. How do I remember the order?</em></p>
+
+<h3>Q41. What is the whole decision, from top to bottom?</h3>
+<p>Climb the ladder and stop at the first rung that fits. The mnemonic is <strong>“Row answers. App locks. Span serializes. Time fences.”</strong></p>
+<ol>
+<li>Row answers. The row you write can decide, so use a conditional write.</li>
+<li>App locks. Your code must decide, so use a lock. Hot rows: hold (pessimistic). Cold rows: check (optimistic).</li>
+<li>Span serializes. The rule spans rows that never collide, so use SERIALIZABLE, or move the rule into one row.</li>
+<li>Time fences. The hold outlives a transaction, so use a distributed lock and fence the final write.</li>
+</ol>
+<figure data-fig="9bef85ec"><figcaption>The ladder · row answers, app locks, span serializes, time fences</figcaption></figure>
+<p>Each rung down handles a harder case, and costs more.</p>
+
+<h2>Part 6: The whole chain</h2>
+<h3>Q42. Can I say all of this as one chain?</h3>
 <ol>
 <li>A pessimistic lock is held by a transaction, so it ends when the transaction ends.</li>
 <li>A checkout lasts minutes, so the hold cannot live in a transaction. It must be written as data.</li>
@@ -309,9 +403,10 @@ WHERE  seat_id = 'A15' AND last_fencing_token &lt;= 33;
 <li>The usual rule, “reject anything lower than the highest seen,” orders writes but cannot see expiry. So the new holder writes its token first. A live check with the lock service is stricter but slower.</li>
 <li>A seat hold can skip tokens, because the final sale is already a conditional write. Use tokens when a stale write would do lasting damage.</li>
 <li>Keep the lease in the database while you can. Move it to Redis for speed or heavy contention, or to ZooKeeper or etcd when two owners would corrupt data.</li>
+<li>Before you reach for any lock, climb the ladder from Q41: row answers, app locks, span serializes, time fences.</li>
 </ol>
 
-<h3>Q34. How do the two kinds of lock compare at a glance?</h3>
+<h3>Q43. How do the two kinds of lock compare at a glance?</h3>
 <div class="tw"><table>
 <thead><tr><th></th><th>Pessimistic lock</th><th>Distributed lock</th></tr></thead>
 <tbody>
@@ -362,6 +457,10 @@ F["a1bb0264"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cd
 F["829f53ff"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 3} ${(y1 + y2) / 2 + jt(s + 1) * 3} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#bal-arrow)'/>; return <svg viewBox='0 0 760 370' role='img' aria-label='A stale write erases newer work.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='bal-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='30' fontSize='18' fontWeight='700' fill={ink}>A stale write erases newer work.</text><g><text x='24' y='83' fontWeight='700' fill={ink}>Server A</text>{rr(150, 62, 110, 34, 1, blue, 0.14)}<text x='205' y='84' textAnchor='middle' fontSize='13' fill={ink}>reads 100</text>{rr(266, 62, 324, 34, 2, edge, 0.1)}<text x='428' y='84' textAnchor='middle' fontSize='13' fill={ink}>frozen, lock expires</text>{rr(596, 62, 124, 34, 3, red, 0.18)}<text x='658' y='84' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>writes 70</text></g><g><text x='24' y='153' fontWeight='700' fill={ink}>Server B</text>{rr(330, 132, 260, 34, 4, blue, 0.14)}<text x='460' y='154' textAnchor='middle' fontSize='13' fill={ink}>gets lock, reads 100, writes 150</text></g><g>{ar(560, 168, 560, 200, 5)}{ar(658, 98, 658, 200, 6)}</g><g><text x='24' y='225' fontWeight='700' fill={ink}>Balance row</text>{rr(150, 204, 250, 34, 7, edge, 0.08)}<text x='275' y='226' textAnchor='middle' fontSize='13' fill={ink}>100</text>{rr(400, 204, 196, 34, 8, green, 0.16)}<text x='498' y='226' textAnchor='middle' fontSize='13' fill={ink}>150</text>{rr(596, 204, 124, 34, 9, red, 0.18)}<text x='658' y='226' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>70</text><text x='658' y='260' textAnchor='middle' fontSize='12.5' fill={quiet}>deposit lost</text></g><text x='24' y='312' fontSize='13' fill={ink}>Correct balance: 100 + 50 − 30 = 120. The stale write left 70.</text><text x='24' y='336' fontSize='12.5' fill={quiet}>With a fencing token, the database rejects server A's write, and server A must read again.</text></svg>; };
 
 F["4e1fc2a7"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 4} ${(y1 + y2) / 2 + jt(s + 1) * 4} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.5' strokeLinecap='round' markerEnd='url(#hot-arrow)'/>; return <svg viewBox='0 0 760 376' role='img' aria-label='One lease row takes every claim. Redis takes them in memory.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='hot-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='30' fontSize='18' fontWeight='700' fill={ink}>One lease row takes every claim. Redis takes them in memory.</text><g>{rr(24, 52, 348, 300, 1, edge, 0)}<text x='40' y='80' fontWeight='700' fill={ink}>Lease in the database</text><text x='40' y='104' fontSize='12.5' fill={quiet}>claims</text>{rr(200, 110, 156, 150, 2, amber, 0.1)}<text x='278' y='134' textAnchor='middle' fontWeight='700' fill={ink}>Database</text>{ar(60, 120, 216, 166, 3)}{ar(60, 145, 216, 169, 4)}{ar(60, 170, 216, 172, 5)}{ar(60, 195, 216, 175, 6)}{ar(60, 220, 216, 178, 7)}{rr(220, 152, 116, 40, 8, red, 0.18)}<text x='278' y='177' textAnchor='middle' fontSize='13' fill={ink}>lease row A15</text><text x='278' y='228' textAnchor='middle' fontSize='12.5' fill={quiet}>claims queue here</text><text x='40' y='310' fontSize='13' fill={ink}>Slower writes, and a hotspot</text><text x='40' y='330' fontSize='13' fill={ink}>on the database your app needs.</text></g><g>{rr(388, 52, 348, 300, 9, edge, 0)}<text x='404' y='80' fontWeight='700' fill={ink}>Lease in Redis</text><text x='404' y='104' fontSize='12.5' fill={quiet}>claims</text>{ar(424, 120, 536, 160, 10)}{ar(424, 145, 536, 165, 11)}{ar(424, 170, 536, 170, 12)}{ar(424, 195, 536, 175, 13)}{ar(424, 220, 536, 180, 14)}{rr(540, 130, 120, 80, 15, blue, 0.14)}<text x='600' y='163' textAnchor='middle' fontWeight='700' fill={ink}>Redis</text><text x='600' y='185' textAnchor='middle' fontSize='12.5' fill={ink}>in memory</text>{ar(600, 212, 600, 244, 16)}{rr(540, 246, 120, 40, 17, amber, 0.16)}<text x='600' y='271' textAnchor='middle' fontSize='12.5' fill={ink}>DB: final sale</text><text x='404' y='310' fontSize='13' fill={ink}>Fast claims. Only the final sale</text><text x='404' y='330' fontSize='13' fill={ink}>reaches the database.</text></g></svg>; };
+
+F["97c7abec"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 3} ${(y1 + y2) / 2 + jt(s + 1) * 3} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#skew-arrow)'/>; return <svg viewBox='0 0 760 388' role='img' aria-label='Two safe-looking writes break one rule.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='skew-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='30' fontSize='18' fontWeight='700' fill={ink}>Two safe-looking writes break one rule.</text><text x='24' y='62' fontWeight='700' fill={ink}>Write skew: each person writes only their own row</text><g><text x='24' y='102' fontWeight='700' fill={ink}>Alice</text>{rr(150, 80, 170, 34, 1, green, 0.14)}<text x='235' y='102' textAnchor='middle' fontSize='13' fill={ink}>reads: 2 on call</text>{rr(340, 80, 190, 34, 2, blue, 0.14)}<text x='435' y='102' textAnchor='middle' fontSize='13' fill={ink}>sets alice = off</text></g><g><text x='24' y='148' fontWeight='700' fill={ink}>Bob</text>{rr(150, 126, 170, 34, 3, green, 0.14)}<text x='235' y='148' textAnchor='middle' fontSize='13' fill={ink}>reads: 2 on call</text>{rr(340, 126, 190, 34, 4, blue, 0.14)}<text x='435' y='148' textAnchor='middle' fontSize='13' fill={ink}>sets bob = off</text></g><g>{ar(532, 97, 566, 112, 5)}{ar(532, 143, 566, 130, 6)}{rr(570, 88, 166, 66, 7, red, 0.16)}<text x='653' y='116' textAnchor='middle' fontWeight='700' fill={ink}>0 on call</text><text x='653' y='138' textAnchor='middle' fontSize='12.5' fill={ink}>rule broken</text></g><text x='435' y='186' textAnchor='middle' fontSize='12.5' fill={quiet}>Different rows, so no lock or version check fires.</text><path d={`M24 ${208 + jt(61)} L380 ${208 + jt(62)} L736 ${208 + jt(63)}`} fill='none' stroke={edge} strokeWidth='1.2' strokeLinecap='round'/><text x='24' y='238' fontWeight='700' fill={ink}>Fix: both write one shared row</text><g><text x='24' y='278' fontWeight='700' fill={ink}>Alice</text>{rr(150, 256, 230, 34, 8, green, 0.14)}<text x='265' y='278' textAnchor='middle' fontSize='13' fill={ink}>count &gt; 1? yes: 2 → 1</text></g><g><text x='24' y='324' fontWeight='700' fill={ink}>Bob</text>{rr(150, 302, 230, 34, 9, red, 0.14)}<text x='265' y='324' textAnchor='middle' fontSize='13' fill={ink}>count &gt; 1? no: 0 rows</text></g><g>{ar(382, 273, 456, 288, 10)}{ar(382, 319, 456, 304, 11)}{rr(460, 266, 170, 60, 12, amber, 0.18)}<text x='545' y='292' textAnchor='middle' fontSize='13' fontWeight='700' fill={ink}>teams row</text><text x='545' y='312' textAnchor='middle' fontSize='12.5' fill={ink}>on_call_count</text><text x='642' y='290' fontSize='12.5' fill={ink}>Alice: 1 row ✓</text><text x='642' y='312' fontSize='12.5' fill={ink}>Bob: 0 rows</text></g><text x='380' y='366' textAnchor='middle' fontSize='12.5' fill={quiet}>They write the same row, so they collide, and the predicate decides.</text></svg>; };
+
+F["9bef85ec"] = () => { const ink = 'var(--cds-text-primary)', quiet = 'var(--cds-text-secondary)', edge = 'var(--cds-chart-axis)', blue = 'var(--cds-chart-categorical-1)', red = 'var(--cds-chart-status-critical)', green = 'var(--cds-chart-status-good)', amber = 'var(--cds-chart-status-warning)'; const jt = n => Math.sin(n * 91.7 + 3.1) * 1.4; const rr = (x, y, w, h, s, col, op) => { const p = k => `M${x + jt(s + k)} ${y + jt(s + k + 1)} L${x + w + jt(s + k + 2)} ${y + jt(s + k + 3)} L${x + w + jt(s + k + 4)} ${y + h + jt(s + k + 5)} L${x + jt(s + k + 6)} ${y + h + jt(s + k + 7)} Z`; return <g><path d={p(0)} fill={col} fillOpacity={op} stroke='none'/><path d={p(10)} fill='none' stroke={col} strokeWidth='1.6' strokeLinejoin='round'/><path d={p(20)} fill='none' stroke={col} strokeWidth='0.9' strokeOpacity='0.55' strokeLinejoin='round'/></g>; }; const ar = (x1, y1, x2, y2, s) => <path d={`M${x1} ${y1} Q${(x1 + x2) / 2 + jt(s) * 3} ${(y1 + y2) / 2 + jt(s + 1) * 3} ${x2} ${y2}`} fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' markerEnd='url(#ladder-arrow)'/>; return <svg viewBox='0 0 760 404' role='img' aria-label='Row answers. App locks. Span serializes. Time fences.' fontFamily='Virgil, Excalifont, Segoe Print, Bradley Hand, Chalkboard SE, Comic Sans MS, cursive' fontSize='14'><defs><marker id='ladder-arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M1 1L9 5L1 9' fill='none' stroke={edge} strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/></marker></defs><text x='24' y='30' fontSize='18' fontWeight='700' fill={ink}>Row answers. App locks. Span serializes. Time fences.</text><g fill='none' stroke={edge} strokeWidth='2' strokeLinecap='round'><path d={`M162 60 L${162 + jt(1)} 210 L162 362`}/><path d={`M458 60 L${458 + jt(2)} 210 L458 362`}/></g><g><text x='24' y='103' fontWeight='700' fill={ink}>Row answers</text>{rr(170, 70, 270, 56, 11, edge, 0.05)}<text x='305' y='93' textAnchor='middle' fontSize='13' fill={ink}>The row you write</text><text x='305' y='112' textAnchor='middle' fontSize='13' fill={ink}>can decide by itself</text>{ar(442, 98, 476, 98, 12)}{rr(480, 70, 256, 56, 13, green, 0.16)}<text x='608' y='94' textAnchor='middle' fontWeight='700' fill={ink}>Conditional write</text><text x='608' y='113' textAnchor='middle' fontSize='12.5' fill={ink}>UPDATE … WHERE predicate</text></g><g><text x='24' y='179' fontWeight='700' fill={ink}>App locks</text>{rr(170, 146, 270, 56, 21, edge, 0.05)}<text x='305' y='169' textAnchor='middle' fontSize='13' fill={ink}>Your code must decide,</text><text x='305' y='188' textAnchor='middle' fontSize='13' fill={ink}>from several rows or outside data</text>{ar(442, 174, 476, 174, 22)}{rr(480, 146, 256, 56, 23, blue, 0.15)}<text x='608' y='170' textAnchor='middle' fontWeight='700' fill={ink}>Pessimistic or optimistic</text><text x='608' y='189' textAnchor='middle' fontSize='12.5' fill={ink}>hot: FOR UPDATE · cold: version</text></g><g><text x='24' y='255' fontWeight='700' fill={ink}>Span serializes</text>{rr(170, 222, 270, 56, 31, edge, 0.05)}<text x='305' y='245' textAnchor='middle' fontSize='13' fill={ink}>The rule spans rows</text><text x='305' y='264' textAnchor='middle' fontSize='13' fill={ink}>that never collide</text>{ar(442, 250, 476, 250, 32)}{rr(480, 222, 256, 56, 33, amber, 0.18)}<text x='608' y='246' textAnchor='middle' fontWeight='700' fill={ink}>SERIALIZABLE</text><text x='608' y='265' textAnchor='middle' fontSize='12.5' fill={ink}>or one row for the rule</text></g><g><text x='24' y='331' fontWeight='700' fill={ink}>Time fences</text>{rr(170, 298, 270, 56, 41, edge, 0.05)}<text x='305' y='321' textAnchor='middle' fontSize='13' fill={ink}>The hold must outlive</text><text x='305' y='340' textAnchor='middle' fontSize='13' fill={ink}>one short transaction</text>{ar(442, 326, 476, 326, 42)}{rr(480, 298, 256, 56, 43, red, 0.14)}<text x='608' y='322' textAnchor='middle' fontWeight='700' fill={ink}>Distributed lock</text><text x='608' y='341' textAnchor='middle' fontSize='12.5' fill={ink}>and fence the final write</text></g><text x='380' y='388' textAnchor='middle' fontSize='12.5' fill={quiet}>Start at the top. Stop at the first rung that fits.</text></svg>; };
 
 document.querySelectorAll('figure[data-fig]').forEach(f => {
   const Fig = F[f.dataset.fig];
